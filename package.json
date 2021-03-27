@@ -3,7 +3,8 @@
     "version": "0.0.1",
     "scripts": {
         "build": "rollup -c rollup.config.intermediate.js && rollup -c rollup.config.final.js",
-        "lint": "eslint ."
+        "lint": "eslint .",
+        "docs": "jsdoc -c .jsdoc.json"
     },
     "dependencies": {
         "@mozilla/readability": "^0.4.1",
@@ -20,6 +21,7 @@
         "eslint-plugin-mocha": "^8.1.0",
         "eslint-plugin-node": "^11.1.0",
         "globby": "^11.0.0",
+        "jsdoc": "^3.6.6",
         "npm-run-all": "^4.1.5",
         "rollup": "^2.41.4",
         "rollup-plugin-copy": "^3.4.0"
