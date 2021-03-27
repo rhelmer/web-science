@@ -1,6 +1,6 @@
 /**
  * @file Script for computing aggregate statistics
- * @module WebScience.Measurements.AggregateStatistics
+ * @module AggregateStatistics
  */
 
 const fbRegex = /(facebook.com\/pages\/[0-9|a-z|A-Z|-]*\/[0-9]*(\/|$))|(facebook\.com\/[0-9|a-z|A-Z|.]*(\/|$))/i;
