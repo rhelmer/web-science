@@ -1,16 +1,16 @@
 /**
  * This module enables running measurements and interventions with randomization,
  * such as A/B tests, multivariate tests, and randomized controlled trials.
- * 
+ *
  * @module webScience.randomization
  */
 
 import * as permissions from "./permissions.js";
 
 permissions.check({
-    module: "webScience.linkExposure",
-    requiredPermissions: [ "storage" ],
-    suggestedPermissions: [ "unlimitedStorage" ]
+  module: "webScience.linkExposure",
+  requiredPermissions: ["storage"],
+  suggestedPermissions: ["unlimitedStorage"],
 });
 
 /**
@@ -68,47 +68,46 @@ const storageKey = "webScience.randomization.conditions";
  * });
  */
 export async function selectCondition(conditionSet) {
-    // Initialize the cache of selected conditions
-    if(conditionCache === null) {
-        const retrievedConditions = await browser.storage.local.get(storageKey);
-        // Check the cache once more, to avoid a race condition
-        if(conditionCache === null) {
-            if(storageKey in retrievedConditions)
-                conditionCache = retrievedConditions[storageKey];
-            else
-                conditionCache = { };
-        }
+  // Initialize the cache of selected conditions
+  if (conditionCache === null) {
+    const retrievedConditions = await browser.storage.local.get(storageKey);
+    // Check the cache once more, to avoid a race condition
+    if (conditionCache === null) {
+      if (storageKey in retrievedConditions)
+        conditionCache = retrievedConditions[storageKey];
+      else conditionCache = {};
     }
+  }
 
-    // Try to load the selected condition from the cache
-    if(conditionSet.name in conditionCache)
-        return conditionCache[conditionSet.name];
+  // Try to load the selected condition from the cache
+  if (conditionSet.name in conditionCache)
+    return conditionCache[conditionSet.name];
 
-    // If there isn't a previously selected condition, select a condition,
-    // save it to the cache and extension local storage, and return it 
-    let totalWeight = 0;
-    const conditionNames = new Set();
-    if(!Array.isArray(conditionSet.conditions) || conditionSet.length === 0)
-        throw "The condition set must include an array with at least one condition."
-    for(const condition of conditionSet.conditions) {
-        if(condition.weight <= 0)
-            throw "Condition weights must be positive values."
-        totalWeight += condition.weight;
-        if(conditionNames.has(condition.name))
-            throw "Conditions must have unique names."
-        conditionNames.add(condition.name);
+  // If there isn't a previously selected condition, select a condition,
+  // save it to the cache and extension local storage, and return it
+  let totalWeight = 0;
+  const conditionNames = new Set();
+  if (!Array.isArray(conditionSet.conditions) || conditionSet.length === 0)
+    throw "The condition set must include an array with at least one condition.";
+  for (const condition of conditionSet.conditions) {
+    if (condition.weight <= 0)
+      throw "Condition weights must be positive values.";
+    totalWeight += condition.weight;
+    if (conditionNames.has(condition.name))
+      throw "Conditions must have unique names.";
+    conditionNames.add(condition.name);
+  }
+  let randomValue = Math.random();
+  let selectedCondition = "";
+  for (const condition of conditionSet.conditions) {
+    randomValue -= condition.weight / totalWeight;
+    if (randomValue <= 0) {
+      selectedCondition = condition.name;
+      break;
     }
-    let randomValue = Math.random();
-    let selectedCondition = "";
-    for(const condition of conditionSet.conditions) {
-        randomValue -= (condition.weight / totalWeight);
-        if(randomValue <= 0) {
-            selectedCondition = condition.name;
-            break;
-        }
-    }
-    conditionCache[conditionSet.name] = selectedCondition;
-    // No need to wait for storage to complete
-    browser.storage.local.set({ [storageKey]: conditionCache });
-    return selectedCondition.repeat(1);
+  }
+  conditionCache[conditionSet.name] = selectedCondition;
+  // No need to wait for storage to complete
+  browser.storage.local.set({ [storageKey]: conditionCache });
+  return selectedCondition.repeat(1);
 }

@@ -1,6 +1,6 @@
 /**
  * This module provides utilities for working with inlined content.
- * 
+ *
  * @module webScience.inline
  */
 
@@ -12,20 +12,20 @@
  * @returns {string} - The content of the URL.
  */
 export function dataUrlToString(dataUrl) {
-    if(!dataUrl.startsWith("data:")) {
-        throw new Error("Incorrectly formatted data URL.");
-    }
-    const commaIndex = dataUrl.indexOf(",");
-    if(commaIndex < 0) {
-        throw new Error("Incorrectly formatted data URL.");
-    }
-    // Not currently checking that the MIME type is valid
-    const dataUrlMimeTypeAndEncoding = dataUrl.substring(0, commaIndex);
-    let content = dataUrl.substring(commaIndex + 1, dataUrl.length);
-    if(dataUrlMimeTypeAndEncoding.endsWith("base64")) {
-        content = atob(content);
-    }
-    return content;
+  if (!dataUrl.startsWith("data:")) {
+    throw new Error("Incorrectly formatted data URL.");
+  }
+  const commaIndex = dataUrl.indexOf(",");
+  if (commaIndex < 0) {
+    throw new Error("Incorrectly formatted data URL.");
+  }
+  // Not currently checking that the MIME type is valid
+  const dataUrlMimeTypeAndEncoding = dataUrl.substring(0, commaIndex);
+  let content = dataUrl.substring(commaIndex + 1, dataUrl.length);
+  if (dataUrlMimeTypeAndEncoding.endsWith("base64")) {
+    content = atob(content);
+  }
+  return content;
 }
 
 /**
@@ -35,5 +35,5 @@ export function dataUrlToString(dataUrl) {
  * @returns {string} - A blob object URL.
  */
 export function dataUrlToBlobUrl(dataUrl) {
-    return URL.createObjectURL(new Blob([ dataUrlToString(dataUrl) ]));
+  return URL.createObjectURL(new Blob([dataUrlToString(dataUrl)]));
 }

@@ -8,9 +8,9 @@
  * @see {@link https://blog.cloudflare.com/announcing-amp-real-url/}
  */
 export const ampCacheDomains = [
-    "amp.cloudflare.com", // Cloudflare AMP Cache
-    "cdn.ampproject.org", // Google AMP Cache
-    "www.bing-amp.com" // Microsoft Bing AMP Cache
+  "amp.cloudflare.com", // Cloudflare AMP Cache
+  "cdn.ampproject.org", // Google AMP Cache
+  "www.bing-amp.com", // Microsoft Bing AMP Cache
 ];
 
 /**
@@ -20,5 +20,5 @@ export const ampCacheDomains = [
  * @see {@link https://developers.google.com/search/docs/guides/about-amp}
  */
 export const ampViewerDomainsAndPaths = [
-    "www.google.com/amp" // Google AMP Viewer
+  "www.google.com/amp", // Google AMP Viewer
 ];

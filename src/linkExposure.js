@@ -19,9 +19,9 @@ import * as permissions from "./permissions.js";
 import linkExposureContentScript from "./content-scripts/linkExposure.content.js";
 
 permissions.check({
-    module: "webScience.linkExposure",
-    requiredPermissions: [ "storage" ],
-    suggestedPermissions: [ "unlimitedStorage" ]
+  module: "webScience.linkExposure",
+  requiredPermissions: ["storage"],
+  suggestedPermissions: ["unlimitedStorage"],
 });
 
 /**
@@ -129,10 +129,12 @@ const pendingPageLinkExposureCallbacks = new Map();
  * @constant {LinkExposureUpdateEvent}
  */
 export const onLinkExposureUpdate = events.createEvent({
-    name: "webScience.linkExposure.onLinkExposureUpdate",
-    addListenerCallback: addUpdateListener,
-    removeListenerCallback: removeUpdateListener,
-    notifyListenersCallback: () => { return false; }
+  name: "webScience.linkExposure.onLinkExposureUpdate",
+  addListenerCallback: addUpdateListener,
+  removeListenerCallback: removeUpdateListener,
+  notifyListenersCallback: () => {
+    return false;
+  },
 });
 
 /**
@@ -148,42 +150,47 @@ let addedMessageListener = false;
  * @param {LinkExposureUpdateOptions} options - A set of options for the listener.
  * @private
  */
-async function addUpdateListener(listener, { linkMatchPatterns, pageMatchPatterns, privateWindows = false }) {
-    // Initialization
-    await pageManager.initialize();
-    if(!addedMessageListener) {
-        messaging.onMessage.addListener(messageListener, {
-            type: "webScience.linkExposure.linkExposureUpdate",
-            schema: {
-                pageId: "string",
-                url: "string",
-                privateWindow: "boolean",
-                linkUrls: "object"
-            }
-        });
-        addedMessageListener = true;
-    }
-
-    // Compile the match patterns for link URLs and page URLs
-    const linkMatchPatternSet = matching.createMatchPatternSet(linkMatchPatterns);
-    const pageMatchPatternSet = matching.createMatchPatternSet(pageMatchPatterns);
-
-    // Register a content script for the page URLs
-    const contentScript = await browser.contentScripts.register({
-        matches: pageMatchPatterns,
-        js: [{
-            code: inline.dataUrlToString(linkExposureContentScript)
-        }],
-        runAt: "document_idle"
+async function addUpdateListener(
+  listener,
+  { linkMatchPatterns, pageMatchPatterns, privateWindows = false }
+) {
+  // Initialization
+  await pageManager.initialize();
+  if (!addedMessageListener) {
+    messaging.onMessage.addListener(messageListener, {
+      type: "webScience.linkExposure.linkExposureUpdate",
+      schema: {
+        pageId: "string",
+        url: "string",
+        privateWindow: "boolean",
+        linkUrls: "object",
+      },
     });
+    addedMessageListener = true;
+  }
 
-    // Store the listener information in a record
-    linkExposureUpdateListeners.set(listener, {
-        linkMatchPatternSet,
-        pageMatchPatternSet,
-        privateWindows,
-        contentScript
-    });
+  // Compile the match patterns for link URLs and page URLs
+  const linkMatchPatternSet = matching.createMatchPatternSet(linkMatchPatterns);
+  const pageMatchPatternSet = matching.createMatchPatternSet(pageMatchPatterns);
+
+  // Register a content script for the page URLs
+  const contentScript = await browser.contentScripts.register({
+    matches: pageMatchPatterns,
+    js: [
+      {
+        code: inline.dataUrlToString(linkExposureContentScript),
+      },
+    ],
+    runAt: "document_idle",
+  });
+
+  // Store the listener information in a record
+  linkExposureUpdateListeners.set(listener, {
+    linkMatchPatternSet,
+    pageMatchPatternSet,
+    privateWindows,
+    contentScript,
+  });
 }
 
 /**
@@ -192,13 +199,13 @@ async function addUpdateListener(listener, { linkMatchPatterns, pageMatchPattern
  * @private
  */
 function removeUpdateListener(listener) {
-    // If the listener has a record, unregister its content script and delete
-    // the record
-    const listenerRecord = linkExposureUpdateListeners.get(listener);
-    if(listenerRecord !== undefined) {
-        listenerRecord.contentScript.unregister();
-        linkExposureUpdateListeners.delete(listener);
-    }
+  // If the listener has a record, unregister its content script and delete
+  // the record
+  const listenerRecord = linkExposureUpdateListeners.get(listener);
+  if (listenerRecord !== undefined) {
+    listenerRecord.contentScript.unregister();
+    linkExposureUpdateListeners.delete(listener);
+  }
 }
 
 /**
@@ -214,92 +221,96 @@ function removeUpdateListener(listener) {
  * user was exposed to.
  */
 function messageListener({ pageId, url, privateWindow, linkUrls }) {
-    // Increment the count of pending link exposure updates for the page
-    let pendingLinkExposureCount = pendingPageLinkExposureUpdates.get(pageId);
-    pendingLinkExposureCount = pendingLinkExposureCount === undefined ? 1 : pendingLinkExposureCount + 1;
-    pendingPageLinkExposureUpdates.set(pageId, pendingLinkExposureCount);
+  // Increment the count of pending link exposure updates for the page
+  let pendingLinkExposureCount = pendingPageLinkExposureUpdates.get(pageId);
+  pendingLinkExposureCount =
+    pendingLinkExposureCount === undefined ? 1 : pendingLinkExposureCount + 1;
+  pendingPageLinkExposureUpdates.set(pageId, pendingLinkExposureCount);
 
-    // Resolve all the link URLs in the update, converting each URL into a
-    // Promise<string>
-    const resolvedLinkUrlPromises = linkUrls.map((linkUrl) => {
-        return linkResolution.resolveUrl(linkUrl);
-    });
+  // Resolve all the link URLs in the update, converting each URL into a
+  // Promise<string>
+  const resolvedLinkUrlPromises = linkUrls.map((linkUrl) => {
+    return linkResolution.resolveUrl(linkUrl);
+  });
 
-    // Once resolution is complete, notify the linkExposureUpdate listeners
-    Promise.allSettled(resolvedLinkUrlPromises).then(async (results) => {
-        // For each link URL, if we have a resolved URL, use that
-        // If we don't have a resolved URL, use the original URL with
-        // cache, shim, and link decoration parsing
-        for(const i of linkUrls.keys()) {
-            if(results[i].status === "fulfilled") {
-                linkUrls[i] = results[i].value;
-            }
-            else {
-                linkUrls[i] = await linkResolution.resolveUrl(linkUrls[i], { request: "none" });
-            }
-        }
+  // Once resolution is complete, notify the linkExposureUpdate listeners
+  Promise.allSettled(resolvedLinkUrlPromises).then(async (results) => {
+    // For each link URL, if we have a resolved URL, use that
+    // If we don't have a resolved URL, use the original URL with
+    // cache, shim, and link decoration parsing
+    for (const i of linkUrls.keys()) {
+      if (results[i].status === "fulfilled") {
+        linkUrls[i] = results[i].value;
+      } else {
+        linkUrls[i] = await linkResolution.resolveUrl(linkUrls[i], {
+          request: "none",
+        });
+      }
+    }
 
-        // If we are ignoring self links, determine whether each link URL is a self link
-        // by comparing to the page URL's public suffix + 1
-        // These are links that do not appear to be self links in the content
-        // script, but resolve to self links
-        let selfLinks = null;
-        if(ignoreSelfLinks) {
-            const pagePS1 = linkResolution.urlToPS1(url);
-            selfLinks = linkUrls.map(linkUrl => pagePS1 === linkResolution.urlToPS1(linkUrl))
-        }
+    // If we are ignoring self links, determine whether each link URL is a self link
+    // by comparing to the page URL's public suffix + 1
+    // These are links that do not appear to be self links in the content
+    // script, but resolve to self links
+    let selfLinks = null;
+    if (ignoreSelfLinks) {
+      const pagePS1 = linkResolution.urlToPS1(url);
+      selfLinks = linkUrls.map(
+        (linkUrl) => pagePS1 === linkResolution.urlToPS1(linkUrl)
+      );
+    }
 
-        // Notify the listeners
-        for(const [listener, listenerRecord] of linkExposureUpdateListeners) {
-            // Check private window and page match pattern requirements for the listener
-            if((!privateWindow || listenerRecord.privateWindows) &&
-            listenerRecord.pageMatchPatternSet.matches(url)) {
-                const matchingLinkUrls = [];
-                let nonmatchingLinkCount = 0;
-                for(const i of linkUrls.keys()) {
-                    // If we are ignoring self links and a resolved link URL is a self link,
-                    // ignore the resolved link URL
-                    if(ignoreSelfLinks && selfLinks[i]) {
-                        continue;
-                    }
-                    // Queue the link for reporting to the listener, either as a URL (if matching)
-                    // or in a count (if nonmatching)
-                    const linkUrl = linkUrls[i];
-                    if(listenerRecord.linkMatchPatternSet.matches(linkUrl)) {
-                        matchingLinkUrls.push(linkUrl);
-                    }
-                    else {
-                        nonmatchingLinkCount++;
-                    }
-                }
-                listener({
-                    pageId,
-                    url,
-                    matchingLinkUrls,
-                    nonmatchingLinkCount
-                });
-            }
+    // Notify the listeners
+    for (const [listener, listenerRecord] of linkExposureUpdateListeners) {
+      // Check private window and page match pattern requirements for the listener
+      if (
+        (!privateWindow || listenerRecord.privateWindows) &&
+        listenerRecord.pageMatchPatternSet.matches(url)
+      ) {
+        const matchingLinkUrls = [];
+        let nonmatchingLinkCount = 0;
+        for (const i of linkUrls.keys()) {
+          // If we are ignoring self links and a resolved link URL is a self link,
+          // ignore the resolved link URL
+          if (ignoreSelfLinks && selfLinks[i]) {
+            continue;
+          }
+          // Queue the link for reporting to the listener, either as a URL (if matching)
+          // or in a count (if nonmatching)
+          const linkUrl = linkUrls[i];
+          if (listenerRecord.linkMatchPatternSet.matches(linkUrl)) {
+            matchingLinkUrls.push(linkUrl);
+          } else {
+            nonmatchingLinkCount++;
+          }
         }
+        listener({
+          pageId,
+          url,
+          matchingLinkUrls,
+          nonmatchingLinkCount,
+        });
+      }
+    }
 
-        // Decrement the count of pending link exposure updates for the page
-        pendingLinkExposureCount = pendingPageLinkExposureUpdates.get(pageId) - 1;
-        if(pendingLinkExposureCount > 0) {
-            pendingPageLinkExposureUpdates.set(pageId, pendingLinkExposureCount);
-        }
-        else {
-            pendingPageLinkExposureUpdates.delete(pageId);
-        }
-        // If there are no more pending link exposures for the page and there's a
-        // callback for when the page has no more pending link exposures, call the
-        // callback and remove it
-        if(pendingLinkExposureCount <= 0) {
-            const callback = pendingPageLinkExposureCallbacks.get(pageId);
-            if(callback !== undefined) {
-                callback();
-            }
-            pendingPageLinkExposureCallbacks.delete(pageId);
-        }
-    });
+    // Decrement the count of pending link exposure updates for the page
+    pendingLinkExposureCount = pendingPageLinkExposureUpdates.get(pageId) - 1;
+    if (pendingLinkExposureCount > 0) {
+      pendingPageLinkExposureUpdates.set(pageId, pendingLinkExposureCount);
+    } else {
+      pendingPageLinkExposureUpdates.delete(pageId);
+    }
+    // If there are no more pending link exposures for the page and there's a
+    // callback for when the page has no more pending link exposures, call the
+    // callback and remove it
+    if (pendingLinkExposureCount <= 0) {
+      const callback = pendingPageLinkExposureCallbacks.get(pageId);
+      if (callback !== undefined) {
+        callback();
+      }
+      pendingPageLinkExposureCallbacks.delete(pageId);
+    }
+  });
 }
 
 /**
@@ -335,7 +346,7 @@ function messageListener({ pageId, url, privateWindow, linkUrls }) {
  * @property {linkExposureUpdateListener} linkExposureUpdateListener - The listener for onLinkExposureUpdate
  * that was created for this onLinkExposureData listener.
  * @property {Map<string,LinkExposureDataDetails>} pageLinkExposureData - A map where keys are page IDs and values
- * are LinkExposureDataDetails reflecting partial link exposure data for a page.  
+ * are LinkExposureDataDetails reflecting partial link exposure data for a page.
  */
 
 /**
@@ -381,17 +392,19 @@ const linkExposureDataListeners = new Map();
  * @private
  */
 let addedPageVisitListeners = false;
- 
+
 /**
  * An event that fires when a complete set of data about link exposures on a page is available. This event
  * only fires once per page, after the page visit has ended.
  * @constant {LinkExposureDataEvent}
  */
 export const onLinkExposureData = events.createEvent({
-    name: "webScience.linkExposure.onLinkExposureData",
-    addListenerCallback: addDataListener,
-    removeListenerCallback: removeDataListener,
-    notifyListenersCallback: () => { return false; }
+  name: "webScience.linkExposure.onLinkExposureData",
+  addListenerCallback: addDataListener,
+  removeListenerCallback: removeDataListener,
+  notifyListenersCallback: () => {
+    return false;
+  },
 });
 
 /**
@@ -411,70 +424,100 @@ const pageVisitStopDelay = 500;
  * @private
  */
 async function addDataListener(listener, options) {
-    if(!addedPageVisitListeners) {
-        // When a page visit starts, for each link exposure data listener with a matching page match pattern,
-        // create an object to accumulate link exposures on that page
-        pageManager.onPageVisitStart.addListener(pageVisitStartDetails => {
-            for(const linkExposureDataListenerRecord of linkExposureDataListeners.values()) {
-                const linkExposureUpdateListenerRecord = linkExposureUpdateListeners.get(linkExposureDataListenerRecord.linkExposureUpdateListener);
-                if(linkExposureUpdateListenerRecord.pageMatchPatternSet.matches(pageVisitStartDetails.url)) {
-                    linkExposureDataListenerRecord.pageLinkExposureData.set(pageVisitStartDetails.pageId, {
-                        pageId: pageVisitStartDetails.pageId,
-                        url: pageVisitStartDetails.url,
-                        matchingLinkUrls: [],
-                        nonmatchingLinkCount: 0
-                    });
-                }
+  if (!addedPageVisitListeners) {
+    // When a page visit starts, for each link exposure data listener with a matching page match pattern,
+    // create an object to accumulate link exposures on that page
+    pageManager.onPageVisitStart.addListener((pageVisitStartDetails) => {
+      for (const linkExposureDataListenerRecord of linkExposureDataListeners.values()) {
+        const linkExposureUpdateListenerRecord = linkExposureUpdateListeners.get(
+          linkExposureDataListenerRecord.linkExposureUpdateListener
+        );
+        if (
+          linkExposureUpdateListenerRecord.pageMatchPatternSet.matches(
+            pageVisitStartDetails.url
+          )
+        ) {
+          linkExposureDataListenerRecord.pageLinkExposureData.set(
+            pageVisitStartDetails.pageId,
+            {
+              pageId: pageVisitStartDetails.pageId,
+              url: pageVisitStartDetails.url,
+              matchingLinkUrls: [],
+              nonmatchingLinkCount: 0,
             }
-        });
-
-        // When a page visit ends, wait a short period because link resolution might still be pending
-        pageManager.onPageVisitStop.addListener(pageVisitStopDetails => {
-            setTimeout(() => {
-                // Create a callback function to notify onPageVisitData listeners about the link exposures on the page
-                // and delete the store of aggregated link exposures
-                const notifyListeners = () => {
-                    for(const [linkExposureDataListener, linkExposureDataListenerRecord] of linkExposureDataListeners) {
-                        const linkExposureDataForPage = linkExposureDataListenerRecord.pageLinkExposureData.get(pageVisitStopDetails.pageId);
-                        // If there's at least one link exposure to report on the page, notify the listener
-                        if(linkExposureDataForPage !== undefined) {
-                            if((linkExposureDataForPage.matchingLinkUrls.length > 0) || (linkExposureDataForPage.nonmatchingLinkCount > 0)) {
-                                linkExposureDataListener(linkExposureDataForPage);
-                            }
-                            // Delete the listener's accumulated link exposure data for the page
-                            linkExposureDataListenerRecord.pageLinkExposureData.delete(pageVisitStopDetails.pageId);
-                        }
-                    }
-                };
-                // If there are no pending link exposure updates for the page, immediately call the callback function
-                if(!pendingPageLinkExposureUpdates.has(pageVisitStopDetails.pageId)) {
-                    notifyListeners();
-                }
-                // Otherwise, set the callback function to be called when there are no more pending link exposures for
-                // the page
-                else {
-                    pendingPageLinkExposureCallbacks.set(pageVisitStopDetails.pageId, notifyListeners);
-                }
-            }, pageVisitStopDelay);
-        });
-        addedPageVisitListeners = true;
-    }
-
-    // Create a record of the onLinkExposureData listener, including a new onLinkExposureUpdate listener
-    const linkExposureDataListenerRecord = {
-        pageLinkExposureData: new Map(),
-        // When the onLinkExposureUpdate listener fires for this onLinkExposureData listener, accumulate
-        // the link exposures on the page for this listener
-        linkExposureUpdateListener: linkExposureUpdateDetails => {
-            const linkExposureDataForPage = linkExposureDataListenerRecord.pageLinkExposureData.get(linkExposureUpdateDetails.pageId);
-            if(linkExposureDataForPage !== undefined) {
-                linkExposureDataForPage.matchingLinkUrls = linkExposureDataForPage.matchingLinkUrls.concat(linkExposureUpdateDetails.matchingLinkUrls);
-                linkExposureDataForPage.nonmatchingLinkCount += linkExposureUpdateDetails.nonmatchingLinkCount;
-            }
+          );
         }
-    };
-    linkExposureDataListeners.set(listener, linkExposureDataListenerRecord);
-    onLinkExposureUpdate.addListener(linkExposureDataListenerRecord.linkExposureUpdateListener, options);
+      }
+    });
+
+    // When a page visit ends, wait a short period because link resolution might still be pending
+    pageManager.onPageVisitStop.addListener((pageVisitStopDetails) => {
+      setTimeout(() => {
+        // Create a callback function to notify onPageVisitData listeners about the link exposures on the page
+        // and delete the store of aggregated link exposures
+        const notifyListeners = () => {
+          for (const [
+            linkExposureDataListener,
+            linkExposureDataListenerRecord,
+          ] of linkExposureDataListeners) {
+            const linkExposureDataForPage = linkExposureDataListenerRecord.pageLinkExposureData.get(
+              pageVisitStopDetails.pageId
+            );
+            // If there's at least one link exposure to report on the page, notify the listener
+            if (linkExposureDataForPage !== undefined) {
+              if (
+                linkExposureDataForPage.matchingLinkUrls.length > 0 ||
+                linkExposureDataForPage.nonmatchingLinkCount > 0
+              ) {
+                linkExposureDataListener(linkExposureDataForPage);
+              }
+              // Delete the listener's accumulated link exposure data for the page
+              linkExposureDataListenerRecord.pageLinkExposureData.delete(
+                pageVisitStopDetails.pageId
+              );
+            }
+          }
+        };
+        // If there are no pending link exposure updates for the page, immediately call the callback function
+        if (!pendingPageLinkExposureUpdates.has(pageVisitStopDetails.pageId)) {
+          notifyListeners();
+        }
+        // Otherwise, set the callback function to be called when there are no more pending link exposures for
+        // the page
+        else {
+          pendingPageLinkExposureCallbacks.set(
+            pageVisitStopDetails.pageId,
+            notifyListeners
+          );
+        }
+      }, pageVisitStopDelay);
+    });
+    addedPageVisitListeners = true;
+  }
+
+  // Create a record of the onLinkExposureData listener, including a new onLinkExposureUpdate listener
+  const linkExposureDataListenerRecord = {
+    pageLinkExposureData: new Map(),
+    // When the onLinkExposureUpdate listener fires for this onLinkExposureData listener, accumulate
+    // the link exposures on the page for this listener
+    linkExposureUpdateListener: (linkExposureUpdateDetails) => {
+      const linkExposureDataForPage = linkExposureDataListenerRecord.pageLinkExposureData.get(
+        linkExposureUpdateDetails.pageId
+      );
+      if (linkExposureDataForPage !== undefined) {
+        linkExposureDataForPage.matchingLinkUrls = linkExposureDataForPage.matchingLinkUrls.concat(
+          linkExposureUpdateDetails.matchingLinkUrls
+        );
+        linkExposureDataForPage.nonmatchingLinkCount +=
+          linkExposureUpdateDetails.nonmatchingLinkCount;
+      }
+    },
+  };
+  linkExposureDataListeners.set(listener, linkExposureDataListenerRecord);
+  onLinkExposureUpdate.addListener(
+    linkExposureDataListenerRecord.linkExposureUpdateListener,
+    options
+  );
 }
 
 /**
@@ -482,12 +525,14 @@ async function addDataListener(listener, options) {
  * @param {linkExposureDataListener} listener - The listener that is being removed.
  * @private
  */
- function removeDataListener(listener) {
-    // If the listener has a record, unregister its onLinkExposureUpdate listener
-    // and delete the record
-    const listenerRecord = linkExposureDataListeners.get(listener);
-    if(listenerRecord !== undefined) {
-        onLinkExposureUpdate.removeListener(listenerRecord.linkExposureUpdateListener);
-        linkExposureDataListeners.delete(listener);
-    }
+function removeDataListener(listener) {
+  // If the listener has a record, unregister its onLinkExposureUpdate listener
+  // and delete the record
+  const listenerRecord = linkExposureDataListeners.get(listener);
+  if (listenerRecord !== undefined) {
+    onLinkExposureUpdate.removeListener(
+      listenerRecord.linkExposureUpdateListener
+    );
+    linkExposureDataListeners.delete(listener);
+  }
 }

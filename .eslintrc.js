@@ -13,6 +13,7 @@ module.exports = {
     "eslint:recommended",
     "plugin:import/warnings",
     "plugin:node/recommended",
+    "prettier",
   ],
   overrides: [
     {
@@ -20,9 +21,7 @@ module.exports = {
       env: {
         mocha: true,
       },
-      extends: [
-        "plugin:mocha/recommended",
-      ],
+      extends: ["plugin:mocha/recommended"],
     },
   ],
   globals: {
@@ -34,11 +33,7 @@ module.exports = {
     ecmaVersion: 2021,
     sourceType: "module",
   },
-  plugins: [
-    "import",
-    "node",
-    "mocha"
-  ],
+  plugins: ["import", "node", "mocha", "prettier"],
   root: true,
   rules: {
     "node/no-deprecated-api": "error",
@@ -49,8 +44,12 @@ module.exports = {
     "node/no-unsupported-features/es-syntax": "off",
 
     "no-multi-spaces": "error",
-    "no-unused-vars": [ "error", { vars: "all", args: "none", ignoreRestSiblings: false } ],
+    "no-unused-vars": [
+      "error",
+      { vars: "all", args: "none", ignoreRestSiblings: false },
+    ],
     "no-var": "warn",
     "prefer-const": "warn",
+    "prettier/prettier": ["error"],
   },
 };

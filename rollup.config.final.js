@@ -10,19 +10,21 @@ const intermediateDirectory = "intermediate";
 const distributionDirectory = "dist";
 
 export default (cliArgs) => {
-  return [{
-    input: `${intermediateDirectory}/webScience.js`,
-    output: {
-      dir: distributionDirectory,
-      preserveModules: true,
-      preserveModulesRoot: intermediateDirectory,
-      format: "es"
+  return [
+    {
+      input: `${intermediateDirectory}/webScience.js`,
+      output: {
+        dir: distributionDirectory,
+        preserveModules: true,
+        preserveModulesRoot: intermediateDirectory,
+        format: "es",
+      },
+      plugins: [
+        url({
+          include: ["**/*.content.js", "**/*.html"],
+          limit: Number.MAX_VALUE, // Inline regardless of content size
+        }),
+      ],
     },
-    plugins: [
-      url({
-        include: [ "**/*.content.js", "**/*.html" ],
-        limit: Number.MAX_VALUE // Inline regardless of content size
-      })
-    ]
-  }];
-}
+  ];
+};

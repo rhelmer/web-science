@@ -5,7 +5,7 @@
  * @module webScience.id
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Generate a random (v4) UUID, consistent with RFC4122. These values
@@ -13,5 +13,5 @@ import { v4 as uuidv4 } from 'uuid';
  * @returns {string} The new UUID.
  */
 export function generateId() {
-    return uuidv4();
+  return uuidv4();
 }

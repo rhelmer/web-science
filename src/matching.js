@@ -22,7 +22,10 @@
  * @type {RegExp}
  * @private
  */
-const matchPatternValidationRegExp = new RegExp("(^<all_urls>$)|(^(https?|wss?|file|ftp|\\*)://(\\*|\\*\\.[^*/]+|[^*/]+)/.*$)|(^file:///.*$)|(^resource://(\\*|\\*\\.[^*/]+|[^*/]+)/.*$|^about:|^data:)", "i");
+const matchPatternValidationRegExp = new RegExp(
+  "(^<all_urls>$)|(^(https?|wss?|file|ftp|\\*)://(\\*|\\*\\.[^*/]+|[^*/]+)/.*$)|(^file:///.*$)|(^resource://(\\*|\\*\\.[^*/]+|[^*/]+)/.*$|^about:|^data:)",
+  "i"
+);
 
 /**
  * A Set of URL schemes permitted in WebExtensions match patterns.
@@ -30,7 +33,17 @@ const matchPatternValidationRegExp = new RegExp("(^<all_urls>$)|(^(https?|wss?|f
  * @constant {Set<string>}
  * @private
  */
-const permittedMatchPatternSchemes = new Set(["*", "http", "https", "ws", "wss", "file", "ftp", "data", "file"]);
+const permittedMatchPatternSchemes = new Set([
+  "*",
+  "http",
+  "https",
+  "ws",
+  "wss",
+  "file",
+  "ftp",
+  "data",
+  "file",
+]);
 
 /**
  * A Set of URL schemes that require a host locator (i.e., are followed by `://` rather than `:`).
@@ -38,7 +51,21 @@ const permittedMatchPatternSchemes = new Set(["*", "http", "https", "ws", "wss",
  * @constant {Set<string>}
  * @private
  */
-const hostLocatorMatchPatternSchemes = new Set(["*", "http", "https", "ws", "wss", "file", "ftp", "moz-extension", "chrome", "resource", "moz", "moz-icon", "moz-gio"]);
+const hostLocatorMatchPatternSchemes = new Set([
+  "*",
+  "http",
+  "https",
+  "ws",
+  "wss",
+  "file",
+  "ftp",
+  "moz-extension",
+  "chrome",
+  "resource",
+  "moz",
+  "moz-icon",
+  "moz-gio",
+]);
 
 /**
  * A regular expression string for the special "<all_urls>" wildcard match pattern, which matches
@@ -48,7 +75,8 @@ const hostLocatorMatchPatternSchemes = new Set(["*", "http", "https", "ws", "wss
  * @constant {string}
  * @private
  */
-const allUrlsRegExpString = "^(?:(?:(?:https?)|(?:wss?)|(?:ftp))://[?[a-zA-Z0-9\\-\\.]+\\]?(?::[0-9]+)?(?:(?:)|(?:/.*)))|(?:file://[?[a-zA-Z0-9\\-\\.]*\\]?/.*)|(?:data:.*)$";
+const allUrlsRegExpString =
+  "^(?:(?:(?:https?)|(?:wss?)|(?:ftp))://[?[a-zA-Z0-9\\-\\.]+\\]?(?::[0-9]+)?(?:(?:)|(?:/.*)))|(?:file://[?[a-zA-Z0-9\\-\\.]*\\]?/.*)|(?:data:.*)$";
 
 /**
  * An internal object that represents a parsed match pattern.
@@ -78,72 +106,83 @@ const allUrlsRegExpString = "^(?:(?:(?:https?)|(?:wss?)|(?:ftp))://[?[a-zA-Z0-9\
  * @private
  */
 function parseMatchPattern(matchPattern) {
-    if(!matchPatternValidationRegExp.test(matchPattern))
-        throw new Error(`Invalid match pattern, failed validation: ${matchPattern}`);
+  if (!matchPatternValidationRegExp.test(matchPattern))
+    throw new Error(
+      `Invalid match pattern, failed validation: ${matchPattern}`
+    );
 
-    const parsedMatchPattern = {
-        allUrls: false,
-        scheme: "",
-        matchSubdomains: false,
-        host: "",
-        path: ""
-    };
+  const parsedMatchPattern = {
+    allUrls: false,
+    scheme: "",
+    matchSubdomains: false,
+    host: "",
+    path: "",
+  };
 
-    let tail = matchPattern.repeat(1);
+  let tail = matchPattern.repeat(1);
 
-    if(matchPattern === "<all_urls>") {
-        parsedMatchPattern.allUrls = true;
-        return parsedMatchPattern;
-    }
-
-    // Parse the scheme
-    let index = matchPattern.indexOf(":");
-    if(index <= 0)
-        throw new Error(`Invalid match pattern, missing : after scheme: ${matchPattern}`);
-    const scheme = matchPattern.substr(0, index);
-    if(!permittedMatchPatternSchemes.has(scheme))
-        throw new Error(`Invalid match pattern, unsupported scheme: ${matchPattern}`);
-    const hostLocatorScheme = hostLocatorMatchPatternSchemes.has(scheme);
-    parsedMatchPattern.scheme = scheme;
-
-    // Parse the host
-    let offset = index + 1;
-    tail = matchPattern.substr(offset);
-    if(hostLocatorScheme) {
-        if(!tail.startsWith("//"))
-            throw new Error(`Invalid match pattern, missing // required by scheme: ${matchPattern}`);
-
-        offset += 2;
-        tail = matchPattern.substr(offset);
-        index = tail.indexOf("/");
-        if(index < 0)
-            index = tail.length;
-
-        let host = tail.substring(0, index);
-        if((host === "") && (scheme !== "file"))
-            throw new Error(`Invalid match pattern, missing host required by scheme: ${matchPattern}`);
-
-        offset += index;
-        tail = matchPattern.substring(offset);
-
-        if(host !== "*") {
-            if(host.startsWith("*.")) {
-                host = host.substring(2);
-                if(host === "*")
-                    throw new Error(`Invalid match pattern, subdomain wildcard with host wildcard: ${matchPattern}`);
-                parsedMatchPattern.matchSubdomains = true;
-            }
-        }
-        parsedMatchPattern.host = host;
-    }
-
-    // Parse the path
-    const path = tail;
-    if(path === "")
-        throw new Error(`Invalid match pattern, missing path: ${matchPattern}`);
-    parsedMatchPattern.path = path;
-
+  if (matchPattern === "<all_urls>") {
+    parsedMatchPattern.allUrls = true;
     return parsedMatchPattern;
+  }
+
+  // Parse the scheme
+  let index = matchPattern.indexOf(":");
+  if (index <= 0)
+    throw new Error(
+      `Invalid match pattern, missing : after scheme: ${matchPattern}`
+    );
+  const scheme = matchPattern.substr(0, index);
+  if (!permittedMatchPatternSchemes.has(scheme))
+    throw new Error(
+      `Invalid match pattern, unsupported scheme: ${matchPattern}`
+    );
+  const hostLocatorScheme = hostLocatorMatchPatternSchemes.has(scheme);
+  parsedMatchPattern.scheme = scheme;
+
+  // Parse the host
+  let offset = index + 1;
+  tail = matchPattern.substr(offset);
+  if (hostLocatorScheme) {
+    if (!tail.startsWith("//"))
+      throw new Error(
+        `Invalid match pattern, missing // required by scheme: ${matchPattern}`
+      );
+
+    offset += 2;
+    tail = matchPattern.substr(offset);
+    index = tail.indexOf("/");
+    if (index < 0) index = tail.length;
+
+    let host = tail.substring(0, index);
+    if (host === "" && scheme !== "file")
+      throw new Error(
+        `Invalid match pattern, missing host required by scheme: ${matchPattern}`
+      );
+
+    offset += index;
+    tail = matchPattern.substring(offset);
+
+    if (host !== "*") {
+      if (host.startsWith("*.")) {
+        host = host.substring(2);
+        if (host === "*")
+          throw new Error(
+            `Invalid match pattern, subdomain wildcard with host wildcard: ${matchPattern}`
+          );
+        parsedMatchPattern.matchSubdomains = true;
+      }
+    }
+    parsedMatchPattern.host = host;
+  }
+
+  // Parse the path
+  const path = tail;
+  if (path === "")
+    throw new Error(`Invalid match pattern, missing path: ${matchPattern}`);
+  parsedMatchPattern.path = path;
+
+  return parsedMatchPattern;
 }
 
 /**
@@ -152,7 +191,7 @@ function parseMatchPattern(matchPattern) {
  * @returns {MatchPatternSet} - The new MatchPatternSet.
  */
 export function createMatchPatternSet(matchPatterns) {
-    return new _MatchPatternSet(matchPatterns);
+  return new _MatchPatternSet(matchPatterns);
 }
 
 /**
@@ -166,9 +205,9 @@ export function createMatchPatternSet(matchPatterns) {
  * const matchPatternSet2 = webScience.matching.importMatchPatternSet(exportedMatchPatternSet);
  */
 export function importMatchPatternSet(exportedMatchPatternSet) {
-    const matchPatternSet = new _MatchPatternSet([]);
-    matchPatternSet.import(exportedMatchPatternSet);
-    return matchPatternSet;
+  const matchPatternSet = new _MatchPatternSet([]);
+  matchPatternSet.import(exportedMatchPatternSet);
+  return matchPatternSet;
 }
 
 /**
@@ -186,7 +225,7 @@ export function importMatchPatternSet(exportedMatchPatternSet) {
  * @typedef {Object} MatchPatternSet
  * An optimized object for matching against match patterns.
  * @property {MatchPatternSetMatches} matches - Test a URL against the set of match patterns.
- * @property {MatchPatternSetExport} export - Export the MatchPatternSet to a serialized object. 
+ * @property {MatchPatternSetExport} export - Export the MatchPatternSet to a serialized object.
  */
 
 /**
@@ -212,160 +251,179 @@ export function importMatchPatternSet(exportedMatchPatternSet) {
  * @private
  */
 class _MatchPatternSet {
-    /**
-     * Creates a match pattern set from an array of match patterns.
-     * @param {string[]} matchPatterns - The match patterns for the set.
-     * @private
-     */
-    constructor(matchPatterns) {
-        // Defining the special sets of `<all_url>` and wildcard schemes inside the class so
-        // keeping content scripts in sync with this implementation will be easier
-        this.allUrls = false;
-        this.allUrlsSchemeSet = new Set(["http", "https", "ws", "wss", "ftp", "file", "data"]);
-        this.wildcardSchemeSet = new Set(["http", "https", "ws", "wss"]);
-        this.patternsByHost = { };
-        for(const matchPattern of matchPatterns) {
-            const parsedMatchPattern = parseMatchPattern(matchPattern);
-            if(parsedMatchPattern.allUrls)
-                this.allUrls = true;
-            else {
-                let hostPatterns = this.patternsByHost[parsedMatchPattern.host];
-                if(hostPatterns === undefined) {
-                    hostPatterns = [ ];
-                    this.patternsByHost[parsedMatchPattern.host] = hostPatterns;
-                }
-                let addedToHostPattern = false;
-                for(const hostPattern of hostPatterns) {
-                    if((hostPattern.scheme === parsedMatchPattern.scheme) && (hostPattern.matchSubdomains === parsedMatchPattern.matchSubdomains)) {
-                        addedToHostPattern = true;
-                        hostPattern.paths.push(parsedMatchPattern.path);
-                        break;
-                    }
-                }
-                if(!addedToHostPattern)
-                    hostPatterns.push({
-                        scheme: parsedMatchPattern.scheme,
-                        matchSubdomains: parsedMatchPattern.matchSubdomains,
-                        host: parsedMatchPattern.host,
-                        paths: [ parsedMatchPattern.path ]
-                    });
-            }
+  /**
+   * Creates a match pattern set from an array of match patterns.
+   * @param {string[]} matchPatterns - The match patterns for the set.
+   * @private
+   */
+  constructor(matchPatterns) {
+    // Defining the special sets of `<all_url>` and wildcard schemes inside the class so
+    // keeping content scripts in sync with this implementation will be easier
+    this.allUrls = false;
+    this.allUrlsSchemeSet = new Set([
+      "http",
+      "https",
+      "ws",
+      "wss",
+      "ftp",
+      "file",
+      "data",
+    ]);
+    this.wildcardSchemeSet = new Set(["http", "https", "ws", "wss"]);
+    this.patternsByHost = {};
+    for (const matchPattern of matchPatterns) {
+      const parsedMatchPattern = parseMatchPattern(matchPattern);
+      if (parsedMatchPattern.allUrls) this.allUrls = true;
+      else {
+        let hostPatterns = this.patternsByHost[parsedMatchPattern.host];
+        if (hostPatterns === undefined) {
+          hostPatterns = [];
+          this.patternsByHost[parsedMatchPattern.host] = hostPatterns;
         }
-
-        for(const host of Object.keys(this.patternsByHost)) {
-            const hostPatterns = this.patternsByHost[host];
-            for(const hostPattern of hostPatterns) {
-                let wildcardPath = false;
-                const pathRegExps = hostPattern.paths.map(path => {
-                    if(path === "/")
-                        return "/";
-                    else if(path === "/*") {
-                        wildcardPath = true;
-                        return "/.*";
-                    }
-                    else {
-                        // Including regular expression special character escaping in
-                        // the constructor so keeping content scripts in sync with this
-                        // implementation will be easier
-                        const escapedPathArray = [ ];
-                        for(const c of path) {
-                            if(c === "*")
-                                escapedPathArray.push(".*");
-                            else
-                                escapedPathArray.push(c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-                        }
-                        return escapedPathArray.join("");
-                    }
-                });
-                if(wildcardPath) {
-                    hostPattern.wildcardPath = true;
-                }
-                else {
-                    hostPattern.wildcardPath = false;
-                    hostPattern.pathRegExp = new RegExp("^(?:" + pathRegExps.join("|") + ")$");
-                }
-                delete hostPattern.paths;
-            }
+        let addedToHostPattern = false;
+        for (const hostPattern of hostPatterns) {
+          if (
+            hostPattern.scheme === parsedMatchPattern.scheme &&
+            hostPattern.matchSubdomains === parsedMatchPattern.matchSubdomains
+          ) {
+            addedToHostPattern = true;
+            hostPattern.paths.push(parsedMatchPattern.path);
+            break;
+          }
         }
+        if (!addedToHostPattern)
+          hostPatterns.push({
+            scheme: parsedMatchPattern.scheme,
+            matchSubdomains: parsedMatchPattern.matchSubdomains,
+            host: parsedMatchPattern.host,
+            paths: [parsedMatchPattern.path],
+          });
+      }
     }
 
-    /**
-     * Compares a URL string to the match patterns in the set.
-     * @param {string} url - The URL string to compare.
-     * @returns {boolean} Whether the URL string matches a pattern in the set.
-     */
-    matches(url) {
-        let parsedUrl;
-        try {
-            parsedUrl = new URL(url);
-        } catch {
-            // If the target isn't a true URL, it certainly doesn't match
-            return false;
+    for (const host of Object.keys(this.patternsByHost)) {
+      const hostPatterns = this.patternsByHost[host];
+      for (const hostPattern of hostPatterns) {
+        let wildcardPath = false;
+        const pathRegExps = hostPattern.paths.map((path) => {
+          if (path === "/") return "/";
+          else if (path === "/*") {
+            wildcardPath = true;
+            return "/.*";
+          } else {
+            // Including regular expression special character escaping in
+            // the constructor so keeping content scripts in sync with this
+            // implementation will be easier
+            const escapedPathArray = [];
+            for (const c of path) {
+              if (c === "*") escapedPathArray.push(".*");
+              else
+                escapedPathArray.push(c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+            }
+            return escapedPathArray.join("");
+          }
+        });
+        if (wildcardPath) {
+          hostPattern.wildcardPath = true;
+        } else {
+          hostPattern.wildcardPath = false;
+          hostPattern.pathRegExp = new RegExp(
+            "^(?:" + pathRegExps.join("|") + ")$"
+          );
         }
-        // Remove the trailing : from the parsed protocol
-        const scheme = parsedUrl.protocol.substring(0, parsedUrl.protocol.length - 1);
-        const host = parsedUrl.hostname;
-        const path = parsedUrl.pathname;
+        delete hostPattern.paths;
+      }
+    }
+  }
 
-        // Check the special `<all_urls>` match pattern
-        if(this.allUrls && this.allUrlsSchemeSet.has(scheme))
+  /**
+   * Compares a URL string to the match patterns in the set.
+   * @param {string} url - The URL string to compare.
+   * @returns {boolean} Whether the URL string matches a pattern in the set.
+   */
+  matches(url) {
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      // If the target isn't a true URL, it certainly doesn't match
+      return false;
+    }
+    // Remove the trailing : from the parsed protocol
+    const scheme = parsedUrl.protocol.substring(
+      0,
+      parsedUrl.protocol.length - 1
+    );
+    const host = parsedUrl.hostname;
+    const path = parsedUrl.pathname;
+
+    // Check the special `<all_urls>` match pattern
+    if (this.allUrls && this.allUrlsSchemeSet.has(scheme)) return true;
+
+    // Identify candidate match patterns
+    let candidatePatterns = [];
+    // Check each component suffix of the hostname for candidate match patterns
+    const hostComponents = parsedUrl.hostname.split(".");
+    let hostSuffix = "";
+    for (let i = hostComponents.length - 1; i >= 0; i--) {
+      hostSuffix =
+        hostComponents[i] +
+        (i < hostComponents.length - 1 ? "." : "") +
+        hostSuffix;
+      const hostSuffixPatterns = this.patternsByHost[hostSuffix];
+      if (hostSuffixPatterns !== undefined)
+        candidatePatterns = candidatePatterns.concat(hostSuffixPatterns);
+    }
+
+    // Add match patterns with a wildcard host to the set of candidates
+    const hostWildcardPatterns = this.patternsByHost["*"];
+    if (hostWildcardPatterns !== undefined)
+      candidatePatterns = candidatePatterns.concat(hostWildcardPatterns);
+
+    // Check the scheme, then the host, then the path for a match
+    for (const candidatePattern of candidatePatterns) {
+      if (
+        candidatePattern.scheme === scheme ||
+        (candidatePattern.scheme === "*" && this.wildcardSchemeSet.has(scheme))
+      ) {
+        if (
+          candidatePattern.matchSubdomains ||
+          candidatePattern.host === "*" ||
+          candidatePattern.host === host
+        ) {
+          if (
+            candidatePattern.wildcardPath ||
+            candidatePattern.pathRegExp.test(path)
+          )
             return true;
-
-        // Identify candidate match patterns
-        let candidatePatterns = [ ];
-        // Check each component suffix of the hostname for candidate match patterns
-        const hostComponents = parsedUrl.hostname.split(".");
-        let hostSuffix = "";
-        for(let i = hostComponents.length - 1; i >= 0; i--) {
-            hostSuffix = hostComponents[i] + (i < hostComponents.length - 1 ? "." : "") + hostSuffix;
-            const hostSuffixPatterns = this.patternsByHost[hostSuffix];
-            if(hostSuffixPatterns !== undefined)
-                candidatePatterns = candidatePatterns.concat(hostSuffixPatterns);
         }
-
-        // Add match patterns with a wildcard host to the set of candidates
-        const hostWildcardPatterns = this.patternsByHost["*"];
-        if(hostWildcardPatterns !== undefined)
-            candidatePatterns = candidatePatterns.concat(hostWildcardPatterns);
-
-        // Check the scheme, then the host, then the path for a match
-        for(const candidatePattern of candidatePatterns) {
-            if((candidatePattern.scheme === scheme) ||
-               ((candidatePattern.scheme === "*") && this.wildcardSchemeSet.has(scheme))) {
-                   if(candidatePattern.matchSubdomains ||
-                      (candidatePattern.host === "*") ||
-                      (candidatePattern.host === host)) {
-                          if(candidatePattern.wildcardPath ||
-                             candidatePattern.pathRegExp.test(path))
-                             return true;
-                      }
-               }
-        }
-
-        return false;
+      }
     }
 
-    /**
-     * Exports the internals of the match pattern set for purposes of saving to extension
-     * local storage.
-     * @returns {object} - An opaque object representing the match pattern set internals.
-     */
-    export() {
-        return {
-            allUrls: this.allUrls,
-            patternsByHost: this.patternsByHost
-        };
-    }
+    return false;
+  }
 
-    /**
-     * Imports the match pattern set from an opaque object previously generated by `export`.
-     * @param {exportedInternals} - The previously exported internals for the match pattern set.
-     * @private
-     */
-    import(exportedInternals) {
-        this.allUrls = exportedInternals.allUrls;
-        this.patternsByHost = exportedInternals.patternsByHost;
-    }
+  /**
+   * Exports the internals of the match pattern set for purposes of saving to extension
+   * local storage.
+   * @returns {object} - An opaque object representing the match pattern set internals.
+   */
+  export() {
+    return {
+      allUrls: this.allUrls,
+      patternsByHost: this.patternsByHost,
+    };
+  }
+
+  /**
+   * Imports the match pattern set from an opaque object previously generated by `export`.
+   * @param {exportedInternals} - The previously exported internals for the match pattern set.
+   * @private
+   */
+  import(exportedInternals) {
+    this.allUrls = exportedInternals.allUrls;
+    this.patternsByHost = exportedInternals.patternsByHost;
+  }
 }
 
 /**
@@ -375,7 +433,7 @@ class _MatchPatternSet {
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions}
  */
 export function escapeRegExpString(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
@@ -385,55 +443,58 @@ export function escapeRegExpString(string) {
  * @private
  */
 function parsedMatchPatternToRegExpString(parsedMatchPattern) {
-    if(parsedMatchPattern.allUrls)
-        return allUrlsRegExpString.repeat(1);
+  if (parsedMatchPattern.allUrls) return allUrlsRegExpString.repeat(1);
 
-    // Scheme
-    const hostLocatorScheme = hostLocatorMatchPatternSchemes.has(parsedMatchPattern.scheme);
-    let schemeRegExpString = parsedMatchPattern.scheme;
-    // The special "*" wildcard scheme should match the "http", "https", "ws", and "wss" schemes
-    if(parsedMatchPattern.scheme === "*")
-        schemeRegExpString = "(?:https?|wss?)";
+  // Scheme
+  const hostLocatorScheme = hostLocatorMatchPatternSchemes.has(
+    parsedMatchPattern.scheme
+  );
+  let schemeRegExpString = parsedMatchPattern.scheme;
+  // The special "*" wildcard scheme should match the "http", "https", "ws", and "wss" schemes
+  if (parsedMatchPattern.scheme === "*") schemeRegExpString = "(?:https?|wss?)";
 
-    // Host
-    let hostRegExpString = "";
-    if(hostLocatorScheme) {
-        // The special "*" wildcard host should match any valid hostname
-        // This isn't a robust check, just limiting to permitted characters and IPv6 literal brackets
-        if(parsedMatchPattern.host === "*")
-            hostRegExpString = "\\[?[a-zA-Z0-9\\-\\.]+\\]?";
-        else {
-            hostRegExpString = escapeRegExpString(parsedMatchPattern.host);
-            // The check for subdomains also isn't robust, limiting to permitted characters, no repeated
-            // periods, and ending in a period
-            if(parsedMatchPattern.matchSubdomains)
-                hostRegExpString = "(?:[a-zA-Z0-9\\-]+\\.)*" + hostRegExpString;
-            // If this is a scheme that requires "://" and isn't "file", there might be a port specified
-            if(parsedMatchPattern.scheme !== "file")
-                hostRegExpString = hostRegExpString + "(?::[0-9]+)?";
-        }
-    }
-
-    // Path
-    let pathRegExpString = "";
-    // If the path is / or /*, allow a URL with no path specified to match
-    if(parsedMatchPattern.path === "/" )
-        pathRegExpString = "/?";
-    else if(parsedMatchPattern.path === "/*")
-        pathRegExpString = "(?:/.*)?";
+  // Host
+  let hostRegExpString = "";
+  if (hostLocatorScheme) {
+    // The special "*" wildcard host should match any valid hostname
+    // This isn't a robust check, just limiting to permitted characters and IPv6 literal brackets
+    if (parsedMatchPattern.host === "*")
+      hostRegExpString = "\\[?[a-zA-Z0-9\\-\\.]+\\]?";
     else {
-        const escapedPathArray = [ ];
-        for(const c of parsedMatchPattern.path) {
-            if(c === "*")
-                escapedPathArray.push(".*");
-            else
-                escapedPathArray.push(escapeRegExpString(c))
-        }
-        pathRegExpString = escapedPathArray.join("");
+      hostRegExpString = escapeRegExpString(parsedMatchPattern.host);
+      // The check for subdomains also isn't robust, limiting to permitted characters, no repeated
+      // periods, and ending in a period
+      if (parsedMatchPattern.matchSubdomains)
+        hostRegExpString = "(?:[a-zA-Z0-9\\-]+\\.)*" + hostRegExpString;
+      // If this is a scheme that requires "://" and isn't "file", there might be a port specified
+      if (parsedMatchPattern.scheme !== "file")
+        hostRegExpString = hostRegExpString + "(?::[0-9]+)?";
     }
-    // Allow arbitrary parameters or an arbitrary fragment identifier
-    pathRegExpString += "(?:\\?.*)?(?:#.*)?";
-    return "^" + schemeRegExpString + (hostLocatorScheme ? "://" : ":") + hostRegExpString + pathRegExpString + "$";
+  }
+
+  // Path
+  let pathRegExpString = "";
+  // If the path is / or /*, allow a URL with no path specified to match
+  if (parsedMatchPattern.path === "/") pathRegExpString = "/?";
+  else if (parsedMatchPattern.path === "/*") pathRegExpString = "(?:/.*)?";
+  else {
+    const escapedPathArray = [];
+    for (const c of parsedMatchPattern.path) {
+      if (c === "*") escapedPathArray.push(".*");
+      else escapedPathArray.push(escapeRegExpString(c));
+    }
+    pathRegExpString = escapedPathArray.join("");
+  }
+  // Allow arbitrary parameters or an arbitrary fragment identifier
+  pathRegExpString += "(?:\\?.*)?(?:#.*)?";
+  return (
+    "^" +
+    schemeRegExpString +
+    (hostLocatorScheme ? "://" : ":") +
+    hostRegExpString +
+    pathRegExpString +
+    "$"
+  );
 }
 
 /**
@@ -444,7 +505,7 @@ function parsedMatchPatternToRegExpString(parsedMatchPattern) {
  * @private
  */
 function matchPatternToRegExpString(matchPattern) {
-    return parsedMatchPatternToRegExpString(parseMatchPattern(matchPattern));
+  return parsedMatchPatternToRegExpString(parseMatchPattern(matchPattern));
 }
 
 /**
@@ -454,7 +515,15 @@ function matchPatternToRegExpString(matchPattern) {
  * @private
  */
 function combineRegExpStrings(regExpStrings) {
-    return "(?:" + (regExpStrings.map((regExpString) => { return regExpStrings.length > 1 ? `(?:${regExpString})` : regExpString; })).join("|") + ")";
+  return (
+    "(?:" +
+    regExpStrings
+      .map((regExpString) => {
+        return regExpStrings.length > 1 ? `(?:${regExpString})` : regExpString;
+      })
+      .join("|") +
+    ")"
+  );
 }
 
 /**
@@ -464,7 +533,11 @@ function combineRegExpStrings(regExpStrings) {
  * @returns {string} The regular expression string.
  */
 export function matchPatternsToRegExpString(matchPatterns) {
-    return combineRegExpStrings(matchPatterns.map(matchPattern => { return matchPatternToRegExpString(matchPattern); }));
+  return combineRegExpStrings(
+    matchPatterns.map((matchPattern) => {
+      return matchPatternToRegExpString(matchPattern);
+    })
+  );
 }
 
 /**
@@ -474,9 +547,9 @@ export function matchPatternsToRegExpString(matchPatterns) {
  * @returns {RegExp} The regular expression RegExp object.
  */
 export function matchPatternsToRegExp(matchPatterns) {
-    // Set the entire regular expression to case insensitive, because JavaScript regular expressions
-    // do not (currently) support partial case insensitivity
-    return new RegExp(matchPatternsToRegExpString(matchPatterns), "i");
+  // Set the entire regular expression to case insensitive, because JavaScript regular expressions
+  // do not (currently) support partial case insensitivity
+  return new RegExp(matchPatternsToRegExpString(matchPatterns), "i");
 }
 
 /**
@@ -488,7 +561,9 @@ export function matchPatternsToRegExp(matchPatterns) {
  * @returns {string[]} Match patterns for the domains in the set.
  */
 export function domainsToMatchPatterns(domains, matchSubdomains = true) {
-    return domains.map(domain => { return `*://${matchSubdomains ? "*." : ""}${domain}/*` });
+  return domains.map((domain) => {
+    return `*://${matchSubdomains ? "*." : ""}${domain}/*`;
+  });
 }
 
 /**
@@ -499,7 +574,9 @@ export function domainsToMatchPatterns(domains, matchSubdomains = true) {
  * @returns {string} A regular expression string for matching a URL against the set of domains.
  */
 export function domainsToRegExpString(domains, matchSubdomains = true) {
-    return matchPatternsToRegExpString(domainsToMatchPatterns(domains, matchSubdomains));
+  return matchPatternsToRegExpString(
+    domainsToMatchPatterns(domains, matchSubdomains)
+  );
 }
 
 /**
@@ -511,9 +588,9 @@ export function domainsToRegExpString(domains, matchSubdomains = true) {
  * @returns {RegExp} A RegExp object for matching a URL against the set of domains.
  */
 export function domainsToRegExp(domains, matchSubdomains = true) {
-    // Set the entire regular expression to case insensitive, because JavaScript regular expressions
-    // do not (currently) support partial case insensitivity
-    return new RegExp(domainsToRegExpString(domains, matchSubdomains), "i");
+  // Set the entire regular expression to case insensitive, because JavaScript regular expressions
+  // do not (currently) support partial case insensitivity
+  return new RegExp(domainsToRegExpString(domains, matchSubdomains), "i");
 }
 
 /**
@@ -528,9 +605,9 @@ export function domainsToRegExp(domains, matchSubdomains = true) {
  * @throws {Error} Throws an error if the URL string is not a valid, absolute URL.
  */
 export function normalizeUrl(url) {
-    const urlObj = new URL(url);
-    urlObj.port = "";
-    urlObj.search = "";
-    urlObj.hash = "";
-    return urlObj.href;
+  const urlObj = new URL(url);
+  urlObj.port = "";
+  urlObj.search = "";
+  urlObj.hash = "";
+  return urlObj.href;
 }

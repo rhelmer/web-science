@@ -1,6 +1,6 @@
 /**
  * A module to facilitate surveys of study participants.
- * 
+ *
  * # User Experience
  *   * If the user has not been previously prompted for the survey,
  *     the survey will open in a new tab.
@@ -12,13 +12,13 @@
  *     has not completed or declined the survey, the user will be
  *     reminded to complete the survey with a browser notification
  *     at a set interval.
- * 
+ *
  * # Limitations
  * Note that this module is currently very limited: it only supports
  * one survey per study, with few options and a constrained design.
  * We have not yet decided whether to build out this module or implement
  * survey functionality in the Rally core add-on.
- * 
+ *
  * # Content Security Policy Requirements
  * This module depends on inline scripts in browser action popups, which
  * require special Content Security Policy permissions in the extension
@@ -37,8 +37,8 @@ import popupPromptPage from "./html/userSurvey.popupPrompt.html";
 import popupNoPromptPage from "./html/userSurvey.popupNoPrompt.html";
 
 permissions.check({
-    module: "webScience.userSurvey",
-    requiredPermissions: [ "notifications", "webRequest" ]
+  module: "webScience.userSurvey",
+  requiredPermissions: ["notifications", "webRequest"],
 });
 
 /**
@@ -73,14 +73,14 @@ const millisecondsPerSecond = 1000;
  * @private
  */
 async function openSurveyInNewTab() {
-    const surveyId = await getSurveyId();
-    const surveyUrlObj = new URL(surveyUrl);
-    surveyUrlObj.searchParams.append("surveyId", surveyId);
-    surveyUrlObj.searchParams.append("timezone", new Date().getTimezoneOffset());
-    browser.tabs.create({
-        active: true,
-        url: surveyUrlObj.href
-    });
+  const surveyId = await getSurveyId();
+  const surveyUrlObj = new URL(surveyUrl);
+  surveyUrlObj.searchParams.append("surveyId", surveyId);
+  surveyUrlObj.searchParams.append("timezone", new Date().getTimezoneOffset());
+  browser.tabs.create({
+    active: true,
+    url: surveyUrlObj.href,
+  });
 }
 
 /**
@@ -88,7 +88,13 @@ async function openSurveyInNewTab() {
  * @private
  */
 function scheduleReminderForUser() {
-    setTimeout(remindUser, Math.max((lastSurveyRequest + reminderInterval * millisecondsPerSecond) - Date.now(), 0));
+  setTimeout(
+    remindUser,
+    Math.max(
+      lastSurveyRequest + reminderInterval * millisecondsPerSecond - Date.now(),
+      0
+    )
+  );
 }
 
 /**
@@ -96,20 +102,20 @@ function scheduleReminderForUser() {
  * @private
  */
 async function remindUser() {
-    const surveyCompleted = await storageSpace.get("surveyCompleted");
-    const surveyCancelled = await storageSpace.get("surveyCancelled");
-    if (surveyCompleted || surveyCancelled) {
-        return;
-    }
-    lastSurveyRequest = Date.now();
-    await storageSpace.set("lastSurveyRequest", lastSurveyRequest);
-    browser.notifications.create({
-        type: "image",
-        message: reminderMessage,
-        title: reminderTitle,
-        iconUrl: reminderIconUrl
-    });
-    scheduleReminderForUser();
+  const surveyCompleted = await storageSpace.get("surveyCompleted");
+  const surveyCancelled = await storageSpace.get("surveyCancelled");
+  if (surveyCompleted || surveyCancelled) {
+    return;
+  }
+  lastSurveyRequest = Date.now();
+  await storageSpace.set("lastSurveyRequest", lastSurveyRequest);
+  browser.notifications.create({
+    type: "image",
+    message: reminderMessage,
+    title: reminderTitle,
+    iconUrl: reminderIconUrl,
+  });
+  scheduleReminderForUser();
 }
 
 /**
@@ -117,9 +123,9 @@ async function remindUser() {
  * @private
  */
 function setPopupToNoPromptPage() {
-    browser.browserAction.setPopup({
-        popup: inline.dataUrlToBlobUrl(popupNoPromptPage)
-    });
+  browser.browserAction.setPopup({
+    popup: inline.dataUrlToBlobUrl(popupNoPromptPage),
+  });
 }
 
 /**
@@ -144,74 +150,78 @@ function setPopupToNoPromptPage() {
  * platform (e.g., SurveyMonkey, Typeform, Qualtrics, etc.).
  */
 export async function setSurvey(options) {
-    if(createdSurvey) {
-        throw new Error("userSurvey only supports one survey at present.");
-    }
-    createdSurvey = true;
+  if (createdSurvey) {
+    throw new Error("userSurvey only supports one survey at present.");
+  }
+  createdSurvey = true;
 
-    const currentTime = Date.now();
-    surveyUrl = options.surveyUrl;
-    reminderIconUrl = browser.runtime.getURL(options.reminderIcon);
-    reminderInterval = options.reminderInterval;
-    reminderTitle = options.reminderTitle;
-    reminderMessage = options.reminderMessage;
-    browser.storage.local.set({
-        "webScience.userSurvey.popupPromptMessage": options.popupPromptMessage
+  const currentTime = Date.now();
+  surveyUrl = options.surveyUrl;
+  reminderIconUrl = browser.runtime.getURL(options.reminderIcon);
+  reminderInterval = options.reminderInterval;
+  reminderTitle = options.reminderTitle;
+  reminderMessage = options.reminderMessage;
+  browser.storage.local.set({
+    "webScience.userSurvey.popupPromptMessage": options.popupPromptMessage,
+  });
+  browser.storage.local.set({
+    "webScience.userSurvey.popupNoPromptMessage": options.popupNoPromptMessage,
+  });
+
+  storageSpace = storage.createKeyValueStorage("webScience.userSurvey");
+  /* Check when we last asked the user to do the survey. If it's null,
+   * we've never asked, which means the extension just got installed.
+   * Open a tab with the survey, and save this time as the most recent
+   * request for participation.
+   */
+  let lastSurveyRequest = await storageSpace.get("lastSurveyRequest");
+  const surveyCompleted = await storageSpace.get("surveyCompleted");
+  const surveyCancelled = await storageSpace.get("surveyCancelled");
+  lastSurveyRequest = await storageSpace.get("lastSurveyRequest");
+
+  // Configure the browser action popup page
+  if (surveyCompleted || surveyCancelled) {
+    setPopupToNoPromptPage();
+    return;
+  } else {
+    browser.browserAction.setPopup({
+      popup: inline.dataUrlToBlobUrl(popupPromptPage),
     });
-    browser.storage.local.set({
-        "webScience.userSurvey.popupNoPromptMessage": options.popupNoPromptMessage
-    });
+  }
 
-    storageSpace = storage.createKeyValueStorage("webScience.userSurvey");
-    /* Check when we last asked the user to do the survey. If it's null,
-     * we've never asked, which means the extension just got installed.
-     * Open a tab with the survey, and save this time as the most recent
-     * request for participation.
-     */
-    let lastSurveyRequest = await storageSpace.get("lastSurveyRequest");
-    const surveyCompleted = await storageSpace.get("surveyCompleted");
-    const surveyCancelled = await storageSpace.get("surveyCancelled");
-    lastSurveyRequest = await storageSpace.get("lastSurveyRequest");
+  // If this is the first survey request, open the survey in a new tab
+  if (lastSurveyRequest === null) {
+    lastSurveyRequest = currentTime;
+    await storageSpace.set("lastSurveyRequest", lastSurveyRequest);
+    await storageSpace.set("surveyCompleted", false);
+    await storageSpace.set("surveyCancelled", false);
+    await storageSpace.set("surveyId", id.generateId());
+    openSurveyInNewTab();
+  }
 
-    // Configure the browser action popup page
-    if (surveyCompleted || surveyCancelled) {
-        setPopupToNoPromptPage();
-        return;
-    }
-    else {
-        browser.browserAction.setPopup({
-            popup: inline.dataUrlToBlobUrl(popupPromptPage)
-        });
-    }
+  // Schedule a reminder for the user
+  scheduleReminderForUser();
 
-    // If this is the first survey request, open the survey in a new tab
-    if (lastSurveyRequest === null) {
-        lastSurveyRequest = currentTime;
-        await storageSpace.set("lastSurveyRequest", lastSurveyRequest);
-        await storageSpace.set("surveyCompleted", false);
-        await storageSpace.set("surveyCancelled", false);
-        await storageSpace.set("surveyId", id.generateId());
-        openSurveyInNewTab();
-    }
+  // Set a listener for the survey completion URL
+  browser.webRequest.onBeforeRequest.addListener(
+    () => {
+      storageSpace.set("surveyCompleted", true);
+      setPopupToNoPromptPage();
+    },
+    { urls: [new URL(options.surveyCompletionUrl).href + "*"] }
+  );
 
-    // Schedule a reminder for the user
-    scheduleReminderForUser();
-
-    // Set a listener for the survey completion URL
-    browser.webRequest.onBeforeRequest.addListener(
-        () => {
-            storageSpace.set("surveyCompleted", true);
-            setPopupToNoPromptPage();
-        },
-        { urls: [ (new URL(options.surveyCompletionUrl)).href + "*" ] }
-    );
-
-    // Set listeners for cancel and open survey button clicks in the survey request
-    messaging.onMessage.addListener(() => {
-        storageSpace.set("surveyCancelled", true);
-        setPopupToNoPromptPage();
-    }, { type: "webScience.userSurvey.cancelSurvey" });
-    messaging.onMessage.addListener(openSurveyInNewTab, { type: "webScience.userSurvey.openSurvey" });
+  // Set listeners for cancel and open survey button clicks in the survey request
+  messaging.onMessage.addListener(
+    () => {
+      storageSpace.set("surveyCancelled", true);
+      setPopupToNoPromptPage();
+    },
+    { type: "webScience.userSurvey.cancelSurvey" }
+  );
+  messaging.onMessage.addListener(openSurveyInNewTab, {
+    type: "webScience.userSurvey.openSurvey",
+  });
 }
 
 /**
@@ -222,5 +232,5 @@ export async function setSurvey(options) {
  * @returns {string} - The participant's survey ID.
  */
 export async function getSurveyId() {
-    return await storageSpace.get("surveyId");
+  return await storageSpace.get("surveyId");
 }

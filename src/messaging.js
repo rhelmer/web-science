@@ -6,17 +6,17 @@
  * This module addresses these issue by providing a simple message type and
  * type checking system on top of `browser.runtime.onMessage` and
  * `browser.tabs.sendMessage`.
- * 
+ *
  * # Messages
  * A message, for purposes of this module, must be an object and must have a
  * type property with a string value.
- * 
+ *
  * # Schemas
  * A schema, for purposes of this module, must be an object. Each property in
  * the schema object is a property that is required in a corresponding message
  * object. Each value in the schema object is a string that must match the
  * `typeof` value for that property in a corresponding message.
- * 
+ *
  * @module webScience.messaging
  */
 
@@ -60,19 +60,23 @@ let initialized = false;
  * @private
  */
 function validateMessageObject(message) {
-    // If the message does not have the right type, fail validation.
-    if ((typeof message !== "object") || (message === null)) {
-        debugLog(`Unable to validate message with type: ${typeof message}`);
-        return false;
-    }
+  // If the message does not have the right type, fail validation.
+  if (typeof message !== "object" || message === null) {
+    debugLog(`Unable to validate message with type: ${typeof message}`);
+    return false;
+  }
 
-    // If there is no type string, fail validation.
-    if(!("type" in message) || (typeof message.type !== "string")) {
-        debugLog(`Unable to validate message object with missing type string: ${JSON.stringify(message)}`);
-        return false;
-    }
+  // If there is no type string, fail validation.
+  if (!("type" in message) || typeof message.type !== "string") {
+    debugLog(
+      `Unable to validate message object with missing type string: ${JSON.stringify(
+        message
+      )}`
+    );
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 /**
@@ -87,25 +91,26 @@ function validateMessageObject(message) {
  * type.
  * @private
  */
-function validateMessageAgainstSchema(message, messageSchema)
-{
-    // If the caller doesn't specify a message schema, attempt to retrieve the registered schema.
-    if(messageSchema === undefined) {
-        messageSchema = messageSchemas.get(message.type);
-        if(messageSchema === undefined) {
-            debugLog(`No schema for message with type: ${message.type}`);
-            return false;
-        }
+function validateMessageAgainstSchema(message, messageSchema) {
+  // If the caller doesn't specify a message schema, attempt to retrieve the registered schema.
+  if (messageSchema === undefined) {
+    messageSchema = messageSchemas.get(message.type);
+    if (messageSchema === undefined) {
+      debugLog(`No schema for message with type: ${message.type}`);
+      return false;
     }
+  }
 
-    // Check the message against the schema.
-    for(const field in messageSchema) {
-        if (!(field in message) || (typeof message[field] !== messageSchema[field])) {
-            debugLog(`Mismatch between message and schema: ${JSON.stringify(message)}`);
-            return false;
-        }
+  // Check the message against the schema.
+  for (const field in messageSchema) {
+    if (!(field in message) || typeof message[field] !== messageSchema[field]) {
+      debugLog(
+        `Mismatch between message and schema: ${JSON.stringify(message)}`
+      );
+      return false;
     }
-    return true;
+  }
+  return true;
 }
 
 /**
@@ -116,37 +121,59 @@ function validateMessageAgainstSchema(message, messageSchema)
  * @private
  */
 function browserRuntimeListener(message, sender, sendResponse) {
-    let messageListeners, messageSchema, browserRuntimeReturnValue;
+  let messageListeners, messageSchema, browserRuntimeReturnValue;
 
-    // If the message is not in an expected format, ignore it.
-    if(!validateMessageObject(message)) {
-        debugLog(`browser.runtime message with unexpected format: ${JSON.stringify(message)}`);
-        return;
-    }
+  // If the message is not in an expected format, ignore it.
+  if (!validateMessageObject(message)) {
+    debugLog(
+      `browser.runtime message with unexpected format: ${JSON.stringify(
+        message
+      )}`
+    );
+    return;
+  }
 
-    // If the message does not have at least one registered listener, ignore it.
-    if ((messageListeners = messageRouter.get(message.type)) === undefined) {
-        debugLog(`browser.runtime message with no listener for message type: ${JSON.stringify(message)}`);
-        return;
-    }
+  // If the message does not have at least one registered listener, ignore it.
+  if ((messageListeners = messageRouter.get(message.type)) === undefined) {
+    debugLog(
+      `browser.runtime message with no listener for message type: ${JSON.stringify(
+        message
+      )}`
+    );
+    return;
+  }
 
-    // If there is a schema registered for this message type, check the message against the schema.
-    if(((messageSchema = messageSchemas.get(message.type)) !== undefined)
-         && !validateMessageAgainstSchema(message, messageSchema)) {
-             debugLog(`browser.runtime message failed schema validation: ${JSON.stringify(message)}`);
-        return;
-    }
+  // If there is a schema registered for this message type, check the message against the schema.
+  if (
+    (messageSchema = messageSchemas.get(message.type)) !== undefined &&
+    !validateMessageAgainstSchema(message, messageSchema)
+  ) {
+    debugLog(
+      `browser.runtime message failed schema validation: ${JSON.stringify(
+        message
+      )}`
+    );
+    return;
+  }
 
-    for (const messageListener of messageListeners) {
-        const messageListenerReturnValue = messageListener(message, sender, sendResponse);
-        if ((messageListenerReturnValue !== undefined) && (browserRuntimeReturnValue !== undefined))
-            debugLog(`Multiple listener return values for message type: ${message.type}`);
-        browserRuntimeReturnValue = messageListenerReturnValue;
-    }
-    
-    return browserRuntimeReturnValue;
+  for (const messageListener of messageListeners) {
+    const messageListenerReturnValue = messageListener(
+      message,
+      sender,
+      sendResponse
+    );
+    if (
+      messageListenerReturnValue !== undefined &&
+      browserRuntimeReturnValue !== undefined
+    )
+      debugLog(
+        `Multiple listener return values for message type: ${message.type}`
+      );
+    browserRuntimeReturnValue = messageListenerReturnValue;
+  }
+
+  return browserRuntimeReturnValue;
 }
-
 
 /**
  * @callback onMessageListener
@@ -191,14 +218,20 @@ function browserRuntimeListener(message, sender, sendResponse) {
  * @constant {OnMessageEvent}
  */
 export const onMessage = events.createEvent({
-    name: "webScience.messaging.onMessage",
-    addListenerCallback: (listener, options) => {
-        registerListener(options.type, listener, "schema" in options ? options.schema : undefined);
-    },
-    removeListenerCallback: (listener, options) => {
-        unregisterListener(options.type, listener);
-    },
-    notifyListenersCallback: () => { return false; }
+  name: "webScience.messaging.onMessage",
+  addListenerCallback: (listener, options) => {
+    registerListener(
+      options.type,
+      listener,
+      "schema" in options ? options.schema : undefined
+    );
+  },
+  removeListenerCallback: (listener, options) => {
+    unregisterListener(options.type, listener);
+  },
+  notifyListenersCallback: () => {
+    return false;
+  },
 });
 
 /**
@@ -211,21 +244,21 @@ export const onMessage = events.createEvent({
  * @private
  */
 function registerListener(messageType, messageListener, messageSchema) {
-    if (!initialized) {
-        initialized = true;
-        browser.runtime.onMessage.addListener(browserRuntimeListener);
-    }
+  if (!initialized) {
+    initialized = true;
+    browser.runtime.onMessage.addListener(browserRuntimeListener);
+  }
 
-    let messageListeners = messageRouter.get(messageType);
-    if (messageListeners === undefined) {
-        messageListeners = new Set();
-        messageRouter.set(messageType, messageListeners);
-    }
-    messageListeners.add(messageListener);
+  let messageListeners = messageRouter.get(messageType);
+  if (messageListeners === undefined) {
+    messageListeners = new Set();
+    messageRouter.set(messageType, messageListeners);
+  }
+  messageListeners.add(messageListener);
 
-    if(messageSchema !== undefined) {
-        registerSchema(messageType, messageSchema);
-    }
+  if (messageSchema !== undefined) {
+    registerSchema(messageType, messageSchema);
+  }
 }
 
 /**
@@ -235,13 +268,13 @@ function registerListener(messageType, messageListener, messageSchema) {
  * @private
  */
 function unregisterListener(messageType, messageListener) {
-    const messageListeners = messageRouter.get(messageType);
-    if(messageListeners !== undefined) {
-        messageListeners.delete(messageListener);
-        if(messageListeners.size === 0) {
-            messageRouter.delete(messageType);
-        }
+  const messageListeners = messageRouter.get(messageType);
+  if (messageListeners !== undefined) {
+    messageListeners.delete(messageListener);
+    if (messageListeners.size === 0) {
+      messageRouter.delete(messageType);
     }
+  }
 }
 
 /**
@@ -251,20 +284,20 @@ function unregisterListener(messageType, messageListener) {
  * a built-in type string.
  */
 export function registerSchema(messageType, messageSchema) {
-    // Check whether the schema has already been registered
-    if(messageSchemas.has(messageType)) {
-        debugLog(`Multiple schemas for message type: ${messageType}`);
-        return;
-    }
-    messageSchemas.set(messageType, messageSchema);
+  // Check whether the schema has already been registered
+  if (messageSchemas.has(messageType)) {
+    debugLog(`Multiple schemas for message type: ${messageType}`);
+    return;
+  }
+  messageSchemas.set(messageType, messageSchema);
 }
 
 /**
  * Unregisters a schema for a type of message, if one is registered.
  * @param {string} messageType - The type of message .
  */
- export function unregisterSchema(messageType) {
-     messageSchemas.delete(messageType);
+export function unregisterSchema(messageType) {
+  messageSchemas.delete(messageType);
 }
 
 /**
@@ -277,13 +310,22 @@ export function registerSchema(messageType, messageSchema) {
  * or a Promise that resolves to false if there was an errror sending the message.
  */
 export function sendMessageToTab(tabId, message) {
-    // Validate the outbound message against the schema
-    if(!validateMessageObject(message) || !validateMessageAgainstSchema(message)) {
-        debugLog(`Attempted to send message that fails validation: ${JSON.stringify(message)}`);
-        return new Promise((resolve) => { resolve(false); });
-    }
-    return browser.tabs.sendMessage(tabId, message).catch((reason) => {
-        debugLog(`Unable to send message to tab: ${JSON.stringify(message)}`);
-        return false;
+  // Validate the outbound message against the schema
+  if (
+    !validateMessageObject(message) ||
+    !validateMessageAgainstSchema(message)
+  ) {
+    debugLog(
+      `Attempted to send message that fails validation: ${JSON.stringify(
+        message
+      )}`
+    );
+    return new Promise((resolve) => {
+      resolve(false);
     });
+  }
+  return browser.tabs.sendMessage(tabId, message).catch((reason) => {
+    debugLog(`Unable to send message to tab: ${JSON.stringify(message)}`);
+    return false;
+  });
 }

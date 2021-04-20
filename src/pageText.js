@@ -2,7 +2,7 @@
  * This module enables analyzing the text content of webpages, including with
  * natural language processing methods. The module uses Mozilla Readability
  * in a content script to parse document title and content when possible.
- * 
+ *
  * # Training, Testing, and Deploying Natural Language Processing Models
  * A motivating use case for this module is applying natural language
  * processing methods to webpage text. The module provides infrastructure for
@@ -15,7 +15,7 @@
  * maintaining multiple NLP codebases for a browser-based study, subtle
  * inconsistencies are easy to introduce and can call into question NLP model
  * performance.
- * 
+ *
  * # Web Crawls to Collect Natural Language Processing Training Data
  * Because WebScience integrates with ordinary browser extensions, you can
  * use this module in a web crawl to collect page text content as NLP training
@@ -29,17 +29,17 @@
  * the study might visit. If a crawl is not representative of user browsing,
  * NLP model performance on crawl data might significantly differ from
  * performance when deployed in a browser-based study.
- * 
+ *
  * # Implementing Natural Language Processing in Web Workers
  * Because natural language processing methods can be computationally
  * expensive, it is very important to offload NLP tasks from an extension's
- * main thread. We recommend pairing this module with the `workers` module to 
+ * main thread. We recommend pairing this module with the `workers` module to
  * implement NLP tasks inside of Web Workers, which run in separate threads
  * and will not block the extension's main thread. Some NLP toolkits support
  * additional optimizations, such as WebAssembly or WebGL, and we recommend
  * enabling all available optimizations to minimize the possibility of impact
- * on the user's browsing experience. 
- * 
+ * on the user's browsing experience.
+ *
  * @see {@link https://github.com/mozilla/readability}
  * @see {@link https://github.com/NaturalNode/natural}
  * @see {@link https://github.com/axa-group/nlp.js}
@@ -125,10 +125,12 @@ const textParsedListeners = new Map();
  * @constant {TextParsedEvent}
  */
 export const onTextParsed = events.createEvent({
-    name: "webScience.pageText.onTextParsed",
-    addListenerCallback: addListener,
-    removeListenerCallback: removeListener,
-    notifyListenersCallback: () => { return false; }
+  name: "webScience.pageText.onTextParsed",
+  addListenerCallback: addListener,
+  removeListenerCallback: removeListener,
+  notifyListenersCallback: () => {
+    return false;
+  },
 });
 
 /**
@@ -148,70 +150,74 @@ let initialized = false;
  * pages in private windows.
  * @private
  */
-async function addListener(listener, {
-    matchPatterns,
-    privateWindows = false
-}) {
-    // Initialization
-    if (!initialized) {
-        initialized = true;
-        await pageManager.initialize();
-        // Listen for content script messages
-        messaging.onMessage.addListener(messageListener,
-            {
-                type: "webScience.pageText.parsedText",
-                schema: {
-                    pageId: "string",
-                    url: "string",
-                    title: "string",
-                    content: "string",
-                    textContent: "string",
-                    privateWindow: "boolean"
-                }
-            });
-        // Notify the content script when there is a new Readability status
-        // for a page and the page URL matches at least one listener
-        messaging.registerSchema("webScience.pageText.isArticle", {
-            isArticle: "boolean"
-        });
-        browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-            if("isArticle" in changeInfo && "url" in tab) {
-                // Test match patterns here rather than in the tabs.onUpdated
-                // listener options so we don't have to manage multiple listeners
-                // or remove and add the listener while events might be queued
-                for (const listenerRecord of textParsedListeners.values()) {
-                    if (listenerRecord.matchPatternSet.matches(tab.url)) {
-                        messaging.sendMessageToTab(tabId, {
-                            type: "webScience.pageText.isArticle",
-                            isArticle: tab.isArticle
-                        });
-                        break;
-                    }
-                }
+async function addListener(
+  listener,
+  { matchPatterns, privateWindows = false }
+) {
+  // Initialization
+  if (!initialized) {
+    initialized = true;
+    await pageManager.initialize();
+    // Listen for content script messages
+    messaging.onMessage.addListener(messageListener, {
+      type: "webScience.pageText.parsedText",
+      schema: {
+        pageId: "string",
+        url: "string",
+        title: "string",
+        content: "string",
+        textContent: "string",
+        privateWindow: "boolean",
+      },
+    });
+    // Notify the content script when there is a new Readability status
+    // for a page and the page URL matches at least one listener
+    messaging.registerSchema("webScience.pageText.isArticle", {
+      isArticle: "boolean",
+    });
+    browser.tabs.onUpdated.addListener(
+      (tabId, changeInfo, tab) => {
+        if ("isArticle" in changeInfo && "url" in tab) {
+          // Test match patterns here rather than in the tabs.onUpdated
+          // listener options so we don't have to manage multiple listeners
+          // or remove and add the listener while events might be queued
+          for (const listenerRecord of textParsedListeners.values()) {
+            if (listenerRecord.matchPatternSet.matches(tab.url)) {
+              messaging.sendMessageToTab(tabId, {
+                type: "webScience.pageText.isArticle",
+                isArticle: tab.isArticle,
+              });
+              break;
             }
-        }, {
-            urls: [ "<all_urls>" ],
-            properties: [ "isArticle" ]
-        });
-    }
+          }
+        }
+      },
+      {
+        urls: ["<all_urls>"],
+        properties: ["isArticle"],
+      }
+    );
+  }
 
-    // Compile the match patterns for the listener
-    const matchPatternSet = matching.createMatchPatternSet(matchPatterns);
-    // Register a content script for the listener
-    const contentScript = await browser.contentScripts.register({
-        matches: matchPatterns,
-        js: [{
-            code: inline.dataUrlToString(pageTextContentScript)
-        }],
-        runAt: "document_idle"
-    });
+  // Compile the match patterns for the listener
+  const matchPatternSet = matching.createMatchPatternSet(matchPatterns);
+  // Register a content script for the listener
+  const contentScript = await browser.contentScripts.register({
+    matches: matchPatterns,
+    js: [
+      {
+        code: inline.dataUrlToString(pageTextContentScript),
+      },
+    ],
+    runAt: "document_idle",
+  });
 
-    // Store a record for the listener
-    textParsedListeners.set(listener, {
-        matchPatternSet,
-        contentScript,
-        privateWindows
-    });
+  // Store a record for the listener
+  textParsedListeners.set(listener, {
+    matchPatternSet,
+    contentScript,
+    privateWindows,
+  });
 }
 
 /**
@@ -220,14 +226,14 @@ async function addListener(listener, {
  * @private
  */
 function removeListener(listener) {
-    // If there is a record of the listener, unregister its content script
-    // and delete the record
-    const listenerRecord = textParsedListeners.get(listener);
-    if (listenerRecord === undefined) {
-        return;
-    }
-    listenerRecord.contentScript.unregister();
-    textParsedListeners.delete(listener);
+  // If there is a record of the listener, unregister its content script
+  // and delete the record
+  const listenerRecord = textParsedListeners.get(listener);
+  if (listenerRecord === undefined) {
+    return;
+  }
+  listenerRecord.contentScript.unregister();
+  textParsedListeners.delete(listener);
 }
 
 /**
@@ -237,14 +243,16 @@ function removeListener(listener) {
  * @private
  */
 function messageListener(textParsedDetails) {
-    // Remove the type string from the content script message
-    delete textParsedDetails.type;
+  // Remove the type string from the content script message
+  delete textParsedDetails.type;
 
-    // Notify listeners when the private window and match pattern requirements are met
-    for (const [listener, listenerRecord] of textParsedListeners) {
-        if ((!textParsedDetails.privateWindow || listenerRecord.privateWindows)
-            && (listenerRecord.matchPatternSet.matches(textParsedDetails.url))) {
-            listener(textParsedDetails);
-        }
+  // Notify listeners when the private window and match pattern requirements are met
+  for (const [listener, listenerRecord] of textParsedListeners) {
+    if (
+      (!textParsedDetails.privateWindow || listenerRecord.privateWindows) &&
+      listenerRecord.matchPatternSet.matches(textParsedDetails.url)
+    ) {
+      listener(textParsedDetails);
     }
+  }
 }
