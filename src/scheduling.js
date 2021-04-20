@@ -1,40 +1,40 @@
 /**
  * This module enables subscribing to periodic events, currently on a daily or
  * weekly schedule.
- * 
+ *
  * The module guarantees a lower bound on when the event will fire, rather than
  * a precise time for when the event will fire. This constraint is because
  * the browser may not be open when the event would next fire, and because the
  * module attempts to wait for an idle state to avoid browser jank.
- * 
+ *
  * The heuristic for determining when to fire the next idle daily event is
  * identical to the heuristic used for the `idle-daily` event issued by the
  * Firefox [`nsIdleService`](https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Reference/Interface/nsIIdleService).
- * 
+ *
  * 1. Wait a day since the most recent idle daily event, or if the extension
  *    was just installed, wait a day after install.
  * 2. Listen for the next idle state, with a detection interval of 3 minutes.
  * 3. If an idle state does not occur within 24 hours, shorten the detection
  *    interval to 1 minute.
- * 
+ *
  * The idle daily event fires as soon as the browser enters an idle state that
  * satisfies the heuristic. The idle weekly event fires just after an idle
  * daily event when it has been at least 7 days since the last idle weekly
  * event.
- * 
+ *
  * Some implementation quirks to be aware of for use and future development:
- * 
+ *
  *   * This module does not subscribe to the `idle-daily` event from the
  *     `nsIdleService` to minimize privileged extension code and so that it
  *     runs on a different schedule from Firefox daily tasks (e.g., Telemetry).
- * 
+ *
  *   * This module uses `setTimeout` to handle corner cases where the browser
  *     goes idle before the idle daily event should fire and remains idle
  *     through when the idle daily event should fire. The timeouts are
  *     configured on startup (and periodically) based on timestamps in
  *     persistent storage, so it is not a problem that timeouts do not
  *     persist between browser sessions.
- * 
+ *
  * @module webScience.scheduling
  */
 
@@ -122,17 +122,21 @@ let timeoutId = -1;
  * @constant {events.Event<events.callbackWithoutParameters, undefined>}
  */
 export const onIdleDaily = events.createEvent({
-    name: "webScience.scheduling.onIdleDaily",
-    addListenerCallback: function() { initialize(); }
-})
+  name: "webScience.scheduling.onIdleDaily",
+  addListenerCallback: function () {
+    initialize();
+  },
+});
 
 /**
  * An event that fires about once a week, when the browser is idle.
  * @constant {events.Event<events.callbackWithoutParameters, undefined>}
  */
 export const onIdleWeekly = events.createEvent({
-    name: "webScience.scheduling.onIdleWeekly",
-    addListenerCallback: function() { initialize(); }
+  name: "webScience.scheduling.onIdleWeekly",
+  addListenerCallback: function () {
+    initialize();
+  },
 });
 
 /**
@@ -149,37 +153,46 @@ export const onIdleWeekly = events.createEvent({
  * @private
  */
 function setIdleStateDetectionTimeout() {
-    // Clear any pending timeout. Note that it's OK to have a timeout ID
-    // that is negative or that is for a timeout that has already fired.
-    // `clearTimeout` will silently do nothing in those scenarios (per
-    // the specification).
-    clearTimeout(timeoutId);
-    
-    // Set a timeout with a delay equal to one day out from the most
-    // recent idle daily event. Thresholded with a delay of 0 (fire
-    // immediately) since the time could be in the past (e.g., if the
-    // browser has not been open for a day).
-    let timeoutDelay = Math.max(lastIdleDailyTime + (secondsPerDay * 1000) - Date.now(), 0);
-    timeoutId = setTimeout(function() {
-        // If the browser is already in an idle state with the ordinary
-        // idle state detection interval, fire the idle events.
-        if(idle.queryState(idleIntervalInSeconds) === "idle") {
-            notifyListeners();
-            return;
-        }
-        // If the browser is not in an idle state, set a timeout with
-        // a delay for when we should start using the shortened idle
-        // state detection interval. As above, the delay is thresholded
-        // at 0. 
-        timeoutDelay = Math.max(lastIdleDailyTime + (secondsPerDay * 1000) + (shortenedIdleIntervalThresholdInSeconds * 1000) - Date.now(), 0);
-        timeoutId = setTimeout(function() {
-            // If the browser is already in an idle state with the
-            // shortened idle state detection interval, fire the idle
-            // events.
-            if(idle.queryState(shortenedIdleIntervalInSeconds) === "idle")
-                notifyListeners();
-        }, timeoutDelay);
+  // Clear any pending timeout. Note that it's OK to have a timeout ID
+  // that is negative or that is for a timeout that has already fired.
+  // `clearTimeout` will silently do nothing in those scenarios (per
+  // the specification).
+  clearTimeout(timeoutId);
+
+  // Set a timeout with a delay equal to one day out from the most
+  // recent idle daily event. Thresholded with a delay of 0 (fire
+  // immediately) since the time could be in the past (e.g., if the
+  // browser has not been open for a day).
+  let timeoutDelay = Math.max(
+    lastIdleDailyTime + secondsPerDay * 1000 - Date.now(),
+    0
+  );
+  timeoutId = setTimeout(function () {
+    // If the browser is already in an idle state with the ordinary
+    // idle state detection interval, fire the idle events.
+    if (idle.queryState(idleIntervalInSeconds) === "idle") {
+      notifyListeners();
+      return;
+    }
+    // If the browser is not in an idle state, set a timeout with
+    // a delay for when we should start using the shortened idle
+    // state detection interval. As above, the delay is thresholded
+    // at 0.
+    timeoutDelay = Math.max(
+      lastIdleDailyTime +
+        secondsPerDay * 1000 +
+        shortenedIdleIntervalThresholdInSeconds * 1000 -
+        Date.now(),
+      0
+    );
+    timeoutId = setTimeout(function () {
+      // If the browser is already in an idle state with the
+      // shortened idle state detection interval, fire the idle
+      // events.
+      if (idle.queryState(shortenedIdleIntervalInSeconds) === "idle")
+        notifyListeners();
     }, timeoutDelay);
+  }, timeoutDelay);
 }
 
 /**
@@ -188,27 +201,26 @@ function setIdleStateDetectionTimeout() {
  * @private
  */
 async function notifyListeners() {
-    // Remember the new idle daily event time to reset the scheduling
-    // heuristic.
-    lastIdleDailyTime = Date.now();
-    await storageSpace.set("lastIdleDailyTime", lastIdleDailyTime);
+  // Remember the new idle daily event time to reset the scheduling
+  // heuristic.
+  lastIdleDailyTime = Date.now();
+  await storageSpace.set("lastIdleDailyTime", lastIdleDailyTime);
 
-    onIdleDaily.notifyListeners();
-    
-    // Set a timeout to account for corner cases.
-    setIdleStateDetectionTimeout();
+  onIdleDaily.notifyListeners();
 
-    // If it's been less than a week since the most recent idle
-    // weekly event, we're done.
-    if(lastIdleDailyTime < (lastIdleWeeklyTime + (7 * secondsPerDay * 1000)))
-        return;
-    
-    // Remember the new idle weekly event time to update scheduling
-    // for the next idle weekly event.
-    lastIdleWeeklyTime = lastIdleDailyTime;
-    await storageSpace.set("lastIdleWeeklyTime", lastIdleWeeklyTime);
+  // Set a timeout to account for corner cases.
+  setIdleStateDetectionTimeout();
 
-    onIdleWeekly.notifyListeners();
+  // If it's been less than a week since the most recent idle
+  // weekly event, we're done.
+  if (lastIdleDailyTime < lastIdleWeeklyTime + 7 * secondsPerDay * 1000) return;
+
+  // Remember the new idle weekly event time to update scheduling
+  // for the next idle weekly event.
+  lastIdleWeeklyTime = lastIdleDailyTime;
+  await storageSpace.set("lastIdleWeeklyTime", lastIdleWeeklyTime);
+
+  onIdleWeekly.notifyListeners();
 }
 
 /**
@@ -218,14 +230,12 @@ async function notifyListeners() {
  * @private
  */
 async function idleStateListener(newState) {
-    // If it's been less than a day since the most recent idle
-    // daily event, ignore the idle state event.
-    if(Date.now() < (lastIdleDailyTime + (secondsPerDay * 1000)))
-        return;
-    // If the browser has entered an idle state, fire the idle
-    // events.
-    if(newState === "idle")
-        await notifyListeners();
+  // If it's been less than a day since the most recent idle
+  // daily event, ignore the idle state event.
+  if (Date.now() < lastIdleDailyTime + secondsPerDay * 1000) return;
+  // If the browser has entered an idle state, fire the idle
+  // events.
+  if (newState === "idle") await notifyListeners();
 }
 
 /**
@@ -235,15 +245,19 @@ async function idleStateListener(newState) {
  * @private
  */
 async function shortenedIdleStateListener(newState) {
-    // If it's been less than two days since the most recent idle
-    // daily event, ignore the idle state event.
-    if(Date.now() < (lastIdleDailyTime + (secondsPerDay * 1000) + (shortenedIdleIntervalThresholdInSeconds * 1000)))
-        return;
-    
-    // If the browser has entered an idle state, fire the idle
-    // events.
-    if(newState === "idle")
-        await notifyListeners();
+  // If it's been less than two days since the most recent idle
+  // daily event, ignore the idle state event.
+  if (
+    Date.now() <
+    lastIdleDailyTime +
+      secondsPerDay * 1000 +
+      shortenedIdleIntervalThresholdInSeconds * 1000
+  )
+    return;
+
+  // If the browser has entered an idle state, fire the idle
+  // events.
+  if (newState === "idle") await notifyListeners();
 }
 
 /**
@@ -258,36 +272,38 @@ let initialized = false;
  * @private
  */
 async function initialize() {
-    if(initialized)
-        return;
-    initialized = true;
+  if (initialized) return;
+  initialized = true;
 
-    // Load the most recent idle daily and idle weekly event times
-    // from persistent storage. If there are no stored times, that
-    // means the extension has just been installed, and we should
-    // use the current time.
-    const currentTime = Date.now();
-    storageSpace = storage.createKeyValueStorage("webScience.scheduling");
+  // Load the most recent idle daily and idle weekly event times
+  // from persistent storage. If there are no stored times, that
+  // means the extension has just been installed, and we should
+  // use the current time.
+  const currentTime = Date.now();
+  storageSpace = storage.createKeyValueStorage("webScience.scheduling");
 
-    lastIdleDailyTime = await storageSpace.get("lastIdleDailyTime");
-    if(lastIdleDailyTime === null) {
-        lastIdleDailyTime = currentTime;
-        await storageSpace.set("lastIdleDailyTime", lastIdleDailyTime);
-    }
+  lastIdleDailyTime = await storageSpace.get("lastIdleDailyTime");
+  if (lastIdleDailyTime === null) {
+    lastIdleDailyTime = currentTime;
+    await storageSpace.set("lastIdleDailyTime", lastIdleDailyTime);
+  }
 
-    lastIdleWeeklyTime = await storageSpace.get("lastIdleWeeklyTime");
-    if(lastIdleWeeklyTime === null) {
-        lastIdleWeeklyTime = currentTime;
-        await storageSpace.set("lastIdleWeeklyTime", lastIdleWeeklyTime);
-    }
+  lastIdleWeeklyTime = await storageSpace.get("lastIdleWeeklyTime");
+  if (lastIdleWeeklyTime === null) {
+    lastIdleWeeklyTime = currentTime;
+    await storageSpace.set("lastIdleWeeklyTime", lastIdleWeeklyTime);
+  }
 
-    // Register two listeners for idle state events from the Idle
-    // module. One listener uses the ordinary idle state detection
-    // interval and the other uses the shortened interval.
-    idle.onStateChanged.addListener(idleStateListener, idleIntervalInSeconds);
-    idle.onStateChanged.addListener(shortenedIdleStateListener, shortenedIdleIntervalInSeconds);
+  // Register two listeners for idle state events from the Idle
+  // module. One listener uses the ordinary idle state detection
+  // interval and the other uses the shortened interval.
+  idle.onStateChanged.addListener(idleStateListener, idleIntervalInSeconds);
+  idle.onStateChanged.addListener(
+    shortenedIdleStateListener,
+    shortenedIdleIntervalInSeconds
+  );
 
-    // Set a timeout to account for corner cases with idle state
-    // events.
-    setIdleStateDetectionTimeout();
+  // Set a timeout to account for corner cases with idle state
+  // events.
+  setIdleStateDetectionTimeout();
 }

@@ -16,40 +16,46 @@ const intermediateDirectory = "intermediate";
 
 export default (cliArgs) => {
   // Background script files and HTML files
-  const rollupConfig = [{
-    input: ".empty.js", // Rollup requires an input file
-    plugins: [
-      copy({
-        targets: [{
-          src: [
-            `${sourceDirectory}/**/*.js`,
-            `${sourceDirectory}/**/*.html`,
-            `!${sourceDirectory}/**/*.content.js`
+  const rollupConfig = [
+    {
+      input: ".empty.js", // Rollup requires an input file
+      plugins: [
+        copy({
+          targets: [
+            {
+              src: [
+                `${sourceDirectory}/**/*.js`,
+                `${sourceDirectory}/**/*.html`,
+                `!${sourceDirectory}/**/*.content.js`,
+              ],
+              dest: `${intermediateDirectory}`,
+            },
           ],
-          dest: `${intermediateDirectory}`
-        }],
-        flatten: false
-      })
-    ]
-  }];
+          flatten: false,
+        }),
+      ],
+    },
+  ];
 
   // Content script files
   const contentScriptPaths = globby.sync(`${sourceDirectory}/**/*.content.js`);
-  for(const contentScriptPath of contentScriptPaths) {
+  for (const contentScriptPath of contentScriptPaths) {
     rollupConfig.push({
       input: contentScriptPath,
       output: {
-        file: `${intermediateDirectory}${contentScriptPath.slice(sourceDirectory.length)}`,
-        format: "iife"
+        file: `${intermediateDirectory}${contentScriptPath.slice(
+          sourceDirectory.length
+        )}`,
+        format: "iife",
       },
       plugins: [
         commonjs(),
         resolve({
-          browser: true
-        })
-      ]
+          browser: true,
+        }),
+      ],
     });
   }
 
   return rollupConfig;
-}
+};

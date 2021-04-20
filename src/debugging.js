@@ -1,7 +1,7 @@
 /**
  * This module provides utilities for logging debugging events.
  * The module currently just outputs events with `console.debug`.
- * 
+ *
  * @module webScience.debugging
  */
 
@@ -17,7 +17,7 @@ let debug = false;
  * Enable logging for debugging events.
  */
 export function enableDebugging() {
-    debug = true;
+  debug = true;
 }
 
 /**
@@ -33,7 +33,7 @@ export function enableDebugging() {
  * @returns {debuggingLogger} - A debugging logger.
  */
 export function getDebuggingLog(moduleName) {
-    return ((text) => {
-        if (debug) console.debug("webScience." + moduleName + ": " + text);
-    });
+  return (text) => {
+    if (debug) console.debug("webScience." + moduleName + ": " + text);
+  };
 }

@@ -89,10 +89,12 @@ const pageDataListeners = new Map();
  * @constant {PageDataEvent}
  */
 export const onPageData = events.createEvent({
-    name: "webScience.pageNavigation.onPageData",
-    addListenerCallback: addListener,
-    removeListenerCallback: removeListener,
-    notifyListenersCallback: () => { return false; }
+  name: "webScience.pageNavigation.onPageData",
+  addListenerCallback: addListener,
+  removeListenerCallback: removeListener,
+  notifyListenersCallback: () => {
+    return false;
+  },
 });
 
 /**
@@ -112,49 +114,50 @@ let initialized = false;
  * pages in private windows.
  * @private
  */
-async function addListener(listener, {
-    matchPatterns,
-    privateWindows = false
-}) {
-    // Initialization
-    if(!initialized) {
-        initialized = true;
-        await pageManager.initialize();
-        messaging.onMessage.addListener(messageListener,
-            {
-                type: "webScience.pageNavigation.pageData",
-                schema: {
-                    pageId: "string",
-                    url: "string",
-                    referrer: "string",
-                    pageVisitStartTime: "number",
-                    pageVisitStopTime: "number",
-                    attentionDuration: "number",
-                    audioDuration: "number",
-                    attentionAndAudioDuration: "number",
-                    maxRelativeScrollDepth: "number",
-                    privateWindow: "boolean"
-                }
-            });
-    }
-
-    // Compile the match patterns for the listener
-    const matchPatternSet = matching.createMatchPatternSet(matchPatterns);
-    // Register a content script for the listener
-    const contentScript = await browser.contentScripts.register({
-        matches: matchPatterns,
-        js: [{
-            code: inline.dataUrlToString(pageNavigationContentScript)
-        }],
-        runAt: "document_start"
+async function addListener(
+  listener,
+  { matchPatterns, privateWindows = false }
+) {
+  // Initialization
+  if (!initialized) {
+    initialized = true;
+    await pageManager.initialize();
+    messaging.onMessage.addListener(messageListener, {
+      type: "webScience.pageNavigation.pageData",
+      schema: {
+        pageId: "string",
+        url: "string",
+        referrer: "string",
+        pageVisitStartTime: "number",
+        pageVisitStopTime: "number",
+        attentionDuration: "number",
+        audioDuration: "number",
+        attentionAndAudioDuration: "number",
+        maxRelativeScrollDepth: "number",
+        privateWindow: "boolean",
+      },
     });
+  }
 
-    // Store a record for the listener
-    pageDataListeners.set(listener, {
-        matchPatternSet,
-        contentScript,
-        privateWindows
-    });
+  // Compile the match patterns for the listener
+  const matchPatternSet = matching.createMatchPatternSet(matchPatterns);
+  // Register a content script for the listener
+  const contentScript = await browser.contentScripts.register({
+    matches: matchPatterns,
+    js: [
+      {
+        code: inline.dataUrlToString(pageNavigationContentScript),
+      },
+    ],
+    runAt: "document_start",
+  });
+
+  // Store a record for the listener
+  pageDataListeners.set(listener, {
+    matchPatternSet,
+    contentScript,
+    privateWindows,
+  });
 }
 
 /**
@@ -162,15 +165,15 @@ async function addListener(listener, {
  * @param {pageDataCallback} listener - The listener that is being removed.
  * @private
  */
- function removeListener(listener) {
-    // If there is a record of the listener, unregister its content script
-    // and delete the record
-    const listenerRecord = pageDataListeners.get(listener);
-    if(listenerRecord === undefined) {
-        return;
-    }
-    listenerRecord.contentScript.unregister();
-    pageDataListeners.delete(listener);
+function removeListener(listener) {
+  // If there is a record of the listener, unregister its content script
+  // and delete the record
+  const listenerRecord = pageDataListeners.get(listener);
+  if (listenerRecord === undefined) {
+    return;
+  }
+  listenerRecord.contentScript.unregister();
+  pageDataListeners.delete(listener);
 }
 
 /**
@@ -178,15 +181,17 @@ async function addListener(listener, {
  * @param {PageDataDetails} pageData - Information about the page.
  * @private
  */
- function messageListener(pageData) {
-    // Remove the type string from the content script message
-    delete pageData.type;
+function messageListener(pageData) {
+  // Remove the type string from the content script message
+  delete pageData.type;
 
-    // Notify listeners when the private window and match pattern requirements are met
-    for(const [listener, listenerRecord] of pageDataListeners) {
-        if((!pageData.privateWindow || listenerRecord.privateWindows)
-        && (listenerRecord.matchPatternSet.matches(pageData.url))) {
-            listener(pageData);
-        }
+  // Notify listeners when the private window and match pattern requirements are met
+  for (const [listener, listenerRecord] of pageDataListeners) {
+    if (
+      (!pageData.privateWindow || listenerRecord.privateWindows) &&
+      listenerRecord.matchPatternSet.matches(pageData.url)
+    ) {
+      listener(pageData);
     }
+  }
 }

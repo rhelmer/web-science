@@ -1,7 +1,7 @@
 /**
  * This module facilitates checking that required permissions are
  * provided in the WebExtensions manifest.
- * 
+ *
  * @module webScience.permissions
  */
 
@@ -20,7 +20,24 @@
  * @constant {Set<string>}
  * @private
  */
-const contentSecurityPolicyDirectives = new Set([ "child-src", "connect-src", "default-src", "font-src", "frame-src", "img-src", "manifest-src", "media-src", "object-src", "prefetch-src", "script-src", "script-src-elem", "script-src-attr", "style-src", "style-src-attr", "worker-src" ]);
+const contentSecurityPolicyDirectives = new Set([
+  "child-src",
+  "connect-src",
+  "default-src",
+  "font-src",
+  "frame-src",
+  "img-src",
+  "manifest-src",
+  "media-src",
+  "object-src",
+  "prefetch-src",
+  "script-src",
+  "script-src-elem",
+  "script-src-attr",
+  "style-src",
+  "style-src-attr",
+  "worker-src",
+]);
 
 /**
  * The Content Security Policy fallback directives specified in the Content Security Policy Level 3 Working Draft.
@@ -29,20 +46,20 @@ const contentSecurityPolicyDirectives = new Set([ "child-src", "connect-src", "d
  * @private
  */
 const contentSecurityPolicyDirectiveFallbacks = {
-    "script-src-elem": [ "script-src-elem", "script-src", "default-src" ],
-    "script-src-attr": [ "script-src-attr", "script-src", "default-src" ],
-    "style-src-elem": [ "style-src-elem", "style-src", "default-src" ],
-    "style-src-attr": [ "style-src-attr", "style-src", "default-src" ],
-    "worker-src": [ "worker-src", "child-src", "script-src", "default-src" ],
-    "connect-src": [ "connect-src", "default-src" ],
-    "manifest-src": [ "manifest-src", "default-src" ],
-    "prefetch-src": [ "prefetch-src", "default-src" ],
-    "object-src": [ "object-src", "default-src" ],
-    "frame-src": [ "frame-src", "child-src", "default-src" ],
-    "media-src": [ "media-src", "default-src" ],
-    "font-src": [ "font-src", "default-src" ],
-    "img-src": [ "img-src", "default-src" ]
-}
+  "script-src-elem": ["script-src-elem", "script-src", "default-src"],
+  "script-src-attr": ["script-src-attr", "script-src", "default-src"],
+  "style-src-elem": ["style-src-elem", "style-src", "default-src"],
+  "style-src-attr": ["style-src-attr", "style-src", "default-src"],
+  "worker-src": ["worker-src", "child-src", "script-src", "default-src"],
+  "connect-src": ["connect-src", "default-src"],
+  "manifest-src": ["manifest-src", "default-src"],
+  "prefetch-src": ["prefetch-src", "default-src"],
+  "object-src": ["object-src", "default-src"],
+  "frame-src": ["frame-src", "child-src", "default-src"],
+  "media-src": ["media-src", "default-src"],
+  "font-src": ["font-src", "default-src"],
+  "img-src": ["img-src", "default-src"],
+};
 
 /**
  * Parses a Content Security Policy from a string. We do not validate the manifest Content Security Policy because
@@ -52,19 +69,23 @@ const contentSecurityPolicyDirectiveFallbacks = {
  * @private
  */
 function parseContentSecurityPolicy(contentSecurityPolicyString) {
-    const parsedContentSecurityPolicy = {};
-    const directiveNameAndValueStrings = contentSecurityPolicyString.split(/;(?: )*/);
-    for(const directiveNameAndValueString of directiveNameAndValueStrings) {
-        const directiveNameAndValueTokens = directiveNameAndValueString.split(/(?: )+/);
-        if(directiveNameAndValueTokens.length > 0) {
-            const directiveName = directiveNameAndValueTokens[0];
-            const directiveValues = directiveNameAndValueTokens.slice(1);
-            if(contentSecurityPolicyDirectives.has(directiveName)) {
-                parsedContentSecurityPolicy[directiveName] = directiveValues;
-            }
-        }
+  const parsedContentSecurityPolicy = {};
+  const directiveNameAndValueStrings = contentSecurityPolicyString.split(
+    /;(?: )*/
+  );
+  for (const directiveNameAndValueString of directiveNameAndValueStrings) {
+    const directiveNameAndValueTokens = directiveNameAndValueString.split(
+      /(?: )+/
+    );
+    if (directiveNameAndValueTokens.length > 0) {
+      const directiveName = directiveNameAndValueTokens[0];
+      const directiveValues = directiveNameAndValueTokens.slice(1);
+      if (contentSecurityPolicyDirectives.has(directiveName)) {
+        parsedContentSecurityPolicy[directiveName] = directiveValues;
+      }
     }
-    return parsedContentSecurityPolicy;
+  }
+  return parsedContentSecurityPolicy;
 }
 
 /**
@@ -75,24 +96,36 @@ function parseContentSecurityPolicy(contentSecurityPolicyString) {
  * @param {boolean} [checkFallbackDirectives=true] - Whether to check the fallback directives for the specified directive.
  * @private
  */
-function checkContentSecurityPolicyDirective(directiveName, directiveValue, contentSecurityPolicy, checkFallbackDirectives = true) {
-    if(directiveName in contentSecurityPolicy) {
-        if(contentSecurityPolicy[directiveName].includes(directiveValue)) {
-            return true;
-        }
-        return false;
-    }
-    if(checkFallbackDirectives && directiveName in contentSecurityPolicyDirectiveFallbacks) {
-        for(const fallbackDirectiveName of contentSecurityPolicyDirectiveFallbacks[directiveName]) {
-            if(fallbackDirectiveName in contentSecurityPolicy) {
-                if(contentSecurityPolicy[fallbackDirectiveName].includes(directiveValue)) {
-                    return true;
-                }
-                return false;
-            }
-        }
+function checkContentSecurityPolicyDirective(
+  directiveName,
+  directiveValue,
+  contentSecurityPolicy,
+  checkFallbackDirectives = true
+) {
+  if (directiveName in contentSecurityPolicy) {
+    if (contentSecurityPolicy[directiveName].includes(directiveValue)) {
+      return true;
     }
     return false;
+  }
+  if (
+    checkFallbackDirectives &&
+    directiveName in contentSecurityPolicyDirectiveFallbacks
+  ) {
+    for (const fallbackDirectiveName of contentSecurityPolicyDirectiveFallbacks[
+      directiveName
+    ]) {
+      if (fallbackDirectiveName in contentSecurityPolicy) {
+        if (
+          contentSecurityPolicy[fallbackDirectiveName].includes(directiveValue)
+        ) {
+          return true;
+        }
+        return false;
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -109,81 +142,129 @@ function checkContentSecurityPolicyDirective(directiveName, directiveValue, cont
  * @returns {boolean} Whether the permissions check passed.
  */
 export async function check({
-    requiredPermissions = [],
-    requiredOrigins = [],
-    suggestedPermissions = [],
-    suggestedOrigins = [],
-    requiredContentSecurityPolicy = {},
-    suggestedContentSecurityPolicy = {},
-    warn = true,
-    module = "moduleNameNotProvided"
+  requiredPermissions = [],
+  requiredOrigins = [],
+  suggestedPermissions = [],
+  suggestedOrigins = [],
+  requiredContentSecurityPolicy = {},
+  suggestedContentSecurityPolicy = {},
+  warn = true,
+  module = "moduleNameNotProvided",
 }) {
-    // If this function is called in an environment other than a background script (e.g., a content script),
-    // that very likely means the call was left in as a possible side effect during bundling when we wanted
-    // it to be tree shaken out. If that's the case, just return true.
-    if(!("permissions" in browser)) {
-        return true;
-    }
+  // If this function is called in an environment other than a background script (e.g., a content script),
+  // that very likely means the call was left in as a possible side effect during bundling when we wanted
+  // it to be tree shaken out. If that's the case, just return true.
+  if (!("permissions" in browser)) {
+    return true;
+  }
 
-    let passed = true;
+  let passed = true;
 
-    // API permissions
-    if(requiredPermissions.length > 0) {
-        const requiredPermissionsCheck = await browser.permissions.contains({ permissions: requiredPermissions });
-        passed = passed && requiredPermissionsCheck;
-        if(!requiredPermissionsCheck && warn) {
-            console.warn(`${module} is missing required API permissions: ${JSON.stringify(requiredPermissions)}`);
-        }
+  // API permissions
+  if (requiredPermissions.length > 0) {
+    const requiredPermissionsCheck = await browser.permissions.contains({
+      permissions: requiredPermissions,
+    });
+    passed = passed && requiredPermissionsCheck;
+    if (!requiredPermissionsCheck && warn) {
+      console.warn(
+        `${module} is missing required API permissions: ${JSON.stringify(
+          requiredPermissions
+        )}`
+      );
     }
-    if(suggestedPermissions.length > 0) {
-        const suggestedPermissionsCheck = await browser.permissions.contains({ permissions: suggestedPermissions });
-        if(!suggestedPermissionsCheck && warn) {
-            console.warn(`${module} is missing recommended API permissions: ${JSON.stringify(suggestedPermissions)}`);
-        }
+  }
+  if (suggestedPermissions.length > 0) {
+    const suggestedPermissionsCheck = await browser.permissions.contains({
+      permissions: suggestedPermissions,
+    });
+    if (!suggestedPermissionsCheck && warn) {
+      console.warn(
+        `${module} is missing recommended API permissions: ${JSON.stringify(
+          suggestedPermissions
+        )}`
+      );
     }
+  }
 
-    // Origin permissions
-    if(requiredOrigins.length > 0) {
-        const requiredOriginsCheck = await browser.permissions.contains({ origins: requiredOrigins });
-        passed = passed && requiredOriginsCheck;
-        if(!requiredOriginsCheck && warn) {
-            console.warn(`${module} is missing required origin permissions: ${JSON.stringify(requiredOrigins)}`);
-        }
+  // Origin permissions
+  if (requiredOrigins.length > 0) {
+    const requiredOriginsCheck = await browser.permissions.contains({
+      origins: requiredOrigins,
+    });
+    passed = passed && requiredOriginsCheck;
+    if (!requiredOriginsCheck && warn) {
+      console.warn(
+        `${module} is missing required origin permissions: ${JSON.stringify(
+          requiredOrigins
+        )}`
+      );
     }
-    if(suggestedOrigins.length > 0) {
-        const suggestedOriginsCheck = await browser.permissions.contains({ origins: suggestedOrigins });
-        if(!suggestedOriginsCheck && warn) {
-            console.warn(`${module} is missing recommended origin permissions: ${JSON.stringify(suggestedOrigins)}`);
-        }
+  }
+  if (suggestedOrigins.length > 0) {
+    const suggestedOriginsCheck = await browser.permissions.contains({
+      origins: suggestedOrigins,
+    });
+    if (!suggestedOriginsCheck && warn) {
+      console.warn(
+        `${module} is missing recommended origin permissions: ${JSON.stringify(
+          suggestedOrigins
+        )}`
+      );
     }
+  }
 
-    // Content Security Policy directives
-    let manifestContentSecurityPolicyString = "";
-    const manifest = browser.runtime.getManifest();
-    if("content_security_policy" in manifest) {
-        manifestContentSecurityPolicyString = manifest["content_security_policy"];
+  // Content Security Policy directives
+  let manifestContentSecurityPolicyString = "";
+  const manifest = browser.runtime.getManifest();
+  if ("content_security_policy" in manifest) {
+    manifestContentSecurityPolicyString = manifest["content_security_policy"];
+  }
+  const manifestContentSecurityPolicy = parseContentSecurityPolicy(
+    manifestContentSecurityPolicyString
+  );
+  let passedRequiredContentSecurityPolicy = true;
+  for (const directiveName of Object.keys(requiredContentSecurityPolicy)) {
+    for (const directiveValue of requiredContentSecurityPolicy[directiveName]) {
+      passedRequiredContentSecurityPolicy =
+        passedRequiredContentSecurityPolicy &&
+        checkContentSecurityPolicyDirective(
+          directiveName,
+          directiveValue,
+          manifestContentSecurityPolicy
+        );
     }
-    const manifestContentSecurityPolicy = parseContentSecurityPolicy(manifestContentSecurityPolicyString);
-    let passedRequiredContentSecurityPolicy = true;
-    for(const directiveName of Object.keys(requiredContentSecurityPolicy)) {
-        for(const directiveValue of requiredContentSecurityPolicy[directiveName]) {
-            passedRequiredContentSecurityPolicy = passedRequiredContentSecurityPolicy && checkContentSecurityPolicyDirective(directiveName, directiveValue, manifestContentSecurityPolicy);
-        }
+  }
+  passed = passed && passedRequiredContentSecurityPolicy;
+  if (!passedRequiredContentSecurityPolicy && warn) {
+    console.warn(
+      `${module} is missing required Content Security Policy directives: ${JSON.stringify(
+        requiredContentSecurityPolicy
+      )}`
+    );
+  }
+  let passedSuggestedContentSecurityPolicy = true;
+  for (const directiveName of Object.keys(suggestedContentSecurityPolicy)) {
+    for (const directiveValue of suggestedContentSecurityPolicy[
+      directiveName
+    ]) {
+      passedSuggestedContentSecurityPolicy =
+        passedSuggestedContentSecurityPolicy &&
+        checkContentSecurityPolicyDirective(
+          directiveName,
+          directiveValue,
+          manifestContentSecurityPolicy
+        );
     }
-    passed = passed && passedRequiredContentSecurityPolicy;
-    if(!passedRequiredContentSecurityPolicy && warn) {
-        console.warn(`${module} is missing required Content Security Policy directives: ${JSON.stringify(requiredContentSecurityPolicy)}`);
-    }
-    let passedSuggestedContentSecurityPolicy = true;
-    for(const directiveName of Object.keys(suggestedContentSecurityPolicy)) {
-        for(const directiveValue of suggestedContentSecurityPolicy[directiveName]) {
-            passedSuggestedContentSecurityPolicy = passedSuggestedContentSecurityPolicy && checkContentSecurityPolicyDirective(directiveName, directiveValue, manifestContentSecurityPolicy);
-        }
-    }
-    passed = passed && passedSuggestedContentSecurityPolicy;
-    if(!passedSuggestedContentSecurityPolicy && warn) {
-        console.warn(`${module} is missing recommended Content Security Policy directives: ${JSON.stringify(suggestedContentSecurityPolicy)}`);
-    }
+  }
+  passed = passed && passedSuggestedContentSecurityPolicy;
+  if (!passedSuggestedContentSecurityPolicy && warn) {
+    console.warn(
+      `${module} is missing recommended Content Security Policy directives: ${JSON.stringify(
+        suggestedContentSecurityPolicy
+      )}`
+    );
+  }
 
-    return passed;
+  return passed;
 }
