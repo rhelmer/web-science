@@ -147,14 +147,33 @@ async function addListener(listener, {
 
     // Compile the match patterns for the listener
     const matchPatternSet = matching.createMatchPatternSet(matchPatterns);
-    // Register a content script for the listener
-    const contentScript = await browser.contentScripts.register({
-        matches: matchPatterns,
-        js: [{
-            file: pageNavigationContentScript
-        }],
-        runAt: "document_start"
-    });
+    // Only Firefox supports dynamic content script loading at this time.
+    let contentScript;
+    try {
+        // getBrowserInfo is Firefox-only as well.
+        const browserInfo = await browser.runtime.getBrowserInfo();
+        // Register a content script for the listener
+
+        if (browserInfo.name === "Firefox") {
+            contentScript = await browser.contentScripts.register({
+                matches: matchPatterns,
+                js: [{
+                    file: pageNavigationContentScript
+                }],
+                runAt: "document_start"
+            });
+        } else {
+            console.debug("WebScience pageNavigator loaded, requires content script:", pageNavigationContentScript);
+
+        }
+    } catch (ex) {
+        if (ex.message === "browser.runtime.getBrowserInfo is not a function") {
+            console.debug("WebScience pageNavigator loaded, requires content script:", pageNavigationContentScript);
+        } else {
+            throw ex;
+        }
+    }
+
 
     // Store a record for the listener
     pageDataListeners.set(listener, {

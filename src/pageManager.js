@@ -488,19 +488,18 @@ export async function initialize() {
     // Register background script event handlers
 
     // If a tab's audible state changed, send webScience.pageManager.pageAudioUpdate
-    browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    browser.tabs.onUpdated.addListener((tabId, changeInfo, extraParameters) => {
         if(!initialized) {
             return;
         }
 
-        messaging.sendMessageToTab(tabId, {
-            type: "webScience.pageManager.pageAudioUpdate",
-            pageHasAudio: changeInfo.audible,
-            timeStamp: timing.now()
-        });
-    }, {
-        urls: [ "http://*/*", "https://*/*" ],
-        properties: [ "audible" ]
+        if (extraParameters.audible === true) {
+            messaging.sendMessageToTab(tabId, {
+                type: "webScience.pageManager.pageAudioUpdate",
+                pageHasAudio: changeInfo.audible,
+                timeStamp: timing.now()
+            });
+        }
     });
 
     // If a tab's URL changed because of the History API, send webScience.pageManager.urlChanged
@@ -521,8 +520,6 @@ export async function initialize() {
             // committed. See: https://github.com/mdn/content/issues/4469
             webNavigationTimeStamp: details.timeStamp
         });
-    }, {
-        url: [ { schemes: [ "http", "https" ] } ]
     });
 
     browser.tabs.onRemoved.addListener((tabId, removeInfo) => {
@@ -706,14 +703,30 @@ export async function initialize() {
         }
     }
 
-    // Register the pageManager content script for all URLs permitted by the extension manifest
-    browser.contentScripts.register({
-        matches: permissions.getManifestOriginMatchPatterns(),
-        js: [{
-            file: pageManagerContentScript
-        }],
-        runAt: "document_start"
-    });
+    // Register the pageManager content script for all URLs permitted by the extension manifest.
+    // Only Firefox supports dynamic content script loading at this time.
+    try {
+        const browserInfo = await browser.runtime.getBrowserInfo();
+        if (browserInfo && browserInfo.name === "Firefox") {
+            browser.contentScripts.register({
+                matches: permissions.getManifestOriginMatchPatterns(),
+                js: [{
+                    file: pageManagerContentScript
+                }],
+                runAt: "document_start"
+            });
+        } else {
+            console.debug("WebScience pageManager loaded, requires content script:", pageManagerContentScript);
+        }
+    } catch (ex) {
+        if (ex.message === "browser.runtime.getBrowserInfo is not a function") {
+        console.debug("WebScience pageManager loaded, requires content script:", pageManagerContentScript);
+        } else {
+            throw ex;
+        }
+    }
+/*
+*/
 
     initializing = false;
     initialized = true;
