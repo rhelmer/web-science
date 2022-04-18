@@ -1,15 +1,12 @@
 {
   "description": "A build test for the WebScience library.",
   "author": "Mozilla",
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "WebScience Build Test",
   "version": "1.0.0",
   "homepage_url": "https://github.com/mozilla-rally/web-science",
   "background": {
-    "scripts": [
-      "dist/browser-polyfill.min.js",
-      "dist/background.js"
-    ]
+    "service_worker": "dist/background-loader.js"
   },
   "content_scripts": [
     {
@@ -26,10 +23,12 @@
   ],
   "incognito": "not_allowed",
   "permissions": [
-    "<all_urls>",
     "unlimitedStorage",
     "webRequest",
     "webNavigation",
     "idle"
+  ],
+  "host_permissions": [
+    "<all_urls>"
   ]
 }
